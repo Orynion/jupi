@@ -1,23 +1,15 @@
-import random
+def ai_or_is_it():
+    print("AI or is it? 🤖")
+    print("Type 'exit' to leave.\n")
 
-print("=== AI or is it? ===")
+    while True:
+        user = input("You: ")
 
-answers = [
-    "That's an interesting question.",
-    "I think so.",
-    "Probably.",
-    "I'm not sure.",
-    "The answer may surprise you."
-]
+        if user.lower() == "exit":
+            print("AI: See you later 👋")
+            break
 
-while True:
-    question = input("\nAsk me something (or type quit): ")
+        print("AI: Interesting... let me think about that.")
 
-    if question.lower() == "quit":
-        print("Goodbye.")
-        break
-
-    print(random.choice(answers))
-
-    if random.randint(1, 70) == 1:
-        print("...or is it?")
+if __name__ == "__main__":
+    ai_or_is_it()
