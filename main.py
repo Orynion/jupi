@@ -2,14 +2,14 @@ from app.core.brain import think
 
 
 def ai_or_is_it():
-    print("AI or is it? 🤖")
+    print("Hey, there this is a test chatbot")
     print("Type 'exit' to leave.\n")
 
     while True:
         user = input("You: ")
 
         if user.lower() == "exit":
-            print("AI: Goodbye 👋")
+            print("AI: Bye bye")
             break
 
         response = think(user)
