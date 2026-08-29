@@ -1,19 +1,29 @@
+from app.core.console import safe_print
 from app.core.brain import think
 
 
 def ai_or_is_it():
-    print("Hey, there this is a test chatbot")
-    print("Type 'exit' to leave.\n")
+    safe_print("Hey, there this is a test chatbot")
+    safe_print("Type 'exit' to leave.\n")
 
     while True:
-        user = input("You: ")
-
-        if user.lower() == "exit":
-            print("AI: Bye bye")
+        try:
+            user = input("You: ")
+        except EOFError:
+            safe_print("\nAI: Bye bye")
             break
 
-        response = think(user)
-        print("AI:", response)
+        if user.lower().strip() == "exit":
+            safe_print("AI: Bye bye")
+            break
+
+        try:
+            response = think(user)
+        except Exception as e:
+            safe_print("AI: [error]", repr(e))
+            continue
+
+        safe_print("AI:", response)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,13 @@
 import os
 import random
 
+# Reconfigure stdout/stderr to UTF-8 before anything else (including the
+# google-genai library) gets a chance to print. The brain module is imported
+# by `main.py` and by `app/core/web.py`, both of which expect to print
+# Saturnia's emoji-laden responses without crashing on Windows consoles
+# (PowerShell, cmd) that default to cp1252 / IBM437.
+import app.core.console  # noqa: F401  (side effect: reconfigure streams)
+
 from dotenv import load_dotenv
 from google import genai
 

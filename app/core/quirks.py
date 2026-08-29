@@ -9,6 +9,7 @@ QUIRK_CHANCE = 0.08
 
 
 def maybe_quirk(message):
+    
 
     message_lower = message.lower().strip()
 
@@ -86,7 +87,7 @@ def maybe_quirk(message):
         if random.random() < QUIRK_CHANCE:
 
             return random.choice([
-                "Ah yes. The ancient ritual of debugging. 🐛",
+                "The ancient ritual of debugging",
                 "Python has entered the chat.",
                 "Somewhere, a semicolon is feeling unnecessary."
             ])

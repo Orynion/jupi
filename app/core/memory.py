@@ -16,6 +16,8 @@ def _default_memory():
 def _load_memory():
 
     if not MEMORY_FILE.exists():
+
+
         return _default_memory()
 
     try:

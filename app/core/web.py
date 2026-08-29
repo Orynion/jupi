@@ -1,6 +1,10 @@
 from flask import Flask, request
 from markupsafe import escape
 
+# Ensure stdout/stderr are reconfigured to UTF-8 before anything else prints.
+# This prevents `UnicodeEncodeError` when Werkzeug prints startup info or
+# tracebacks on terminals that default to cp1252 / IBM437 (e.g. PowerShell).
+import app.core.console  # noqa: F401
 from app.core.brain import think
 
 

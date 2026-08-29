@@ -387,8 +387,24 @@ def looks_like_algebra(text):
 # ------------------------------------------------------------
 
 def solve(question):
-
-    equation = clean(question)
+    # Extract the equation part and remove prefixes like "solve", "solve for", etc.
+    if "=" not in question:
+        return None
+    
+    # Split on the equals sign
+    parts = question.split("=")
+    if len(parts) != 2:
+        return None
+    
+    # Remove common prefixes from the left side
+    left = parts[0].strip()
+    left = re.sub(r'^(solve\s+for\s+|solve\s+|find\s+)', '', left, flags=re.IGNORECASE)
+    
+    right = parts[1].strip()
+    
+    # Reconstruct the equation
+    equation = f"{left}={right}"
+    equation = clean(equation)
 
     if not looks_like_algebra(equation):
         return None

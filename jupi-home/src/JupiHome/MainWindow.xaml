@@ -1,0 +1,457 @@
+<Window x:Class="JupiHome.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:JupiHome.Converters"
+        mc:Ignorable="d"
+        Title="Jupi Home" Height="700" Width="1100" MinWidth="800" MinHeight="500"
+        WindowStartupLocation="CenterScreen"
+        Background="#FEFBF7"
+        Loaded="Window_Loaded">
+
+    <Window.Resources>
+        <!-- Converters -->
+        <local:MarkdownToFlowDocumentConverter x:Key="MarkdownConverter"/>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+
+        <!-- ====== PHASE 5: WARM LIGHT THEME COLOR PALETTE ====== -->
+        <!-- Warm, restrained, expressive palette -->
+        <SolidColorBrush x:Key="BackgroundBrush" Color="#FEFBF7"/>
+        <SolidColorBrush x:Key="SurfaceBrush" Color="#FFFCF9"/>
+        <SolidColorBrush x:Key="BorderBrush" Color="#E8E3DC"/>
+        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#3D3028"/>
+        <SolidColorBrush x:Key="TextSecondaryBrush" Color="#7D6D60"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="#8B7355"/>
+        <SolidColorBrush x:Key="AccentHoverBrush" Color="#7A6347"/>
+        <SolidColorBrush x:Key="UserMessageBgBrush" Color="#F5EFEB"/>
+        <SolidColorBrush x:Key="UserMessageBorderBrush" Color="#E0D5CA"/>
+        <SolidColorBrush x:Key="AssistantMessageBgBrush" Color="#FFFCF9"/>
+        <SolidColorBrush x:Key="ErrorBrush" Color="#C64545"/>
+        <SolidColorBrush x:Key="SuccessBrush" Color="#6B8E7F"/>
+
+        <!-- ====== TYPOGRAPHY: Handjet and Rum Raisin ====== -->
+        <!-- Font families with fallbacks -->
+        <FontFamily x:Key="HeadingFont">Handjet, Segoe UI, Arial</FontFamily>
+        <FontFamily x:Key="BrandingFont">Rum Raisin, Georgia, Serif</FontFamily>
+        <FontFamily x:Key="BodyFont">Segoe UI, Arial, sans-serif</FontFamily>
+
+        <!-- Conversation list item style -->
+        <Style x:Key="ConversationItemStyle" TargetType="ListBoxItem">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="12,12"/>
+            <Setter Property="Margin" Value="0,0,0,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderThickness="0"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#F5EFEB"/>
+                </Trigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#FEFAF6"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- ====== REFINED MESSAGE STYLES (No Huge Bubbles) ====== -->
+        <Style x:Key="UserMessageStyle" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource UserMessageBgBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource UserMessageBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="Margin" Value="80,6,16,6"/>
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+            <Setter Property="MaxWidth" Value="550"/>
+        </Style>
+
+        <Style x:Key="AssistantMessageStyle" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource AssistantMessageBgBrush}"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="0"/>
+            <Setter Property="Padding" Value="0,6,0,6"/>
+            <Setter Property="Margin" Value="16,6,80,6"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+            <Setter Property="MaxWidth" Value="550"/>
+        </Style>
+
+        <!-- Primary button with paper-plane send interaction -->
+        <Style x:Key="SendButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="18,10"/>
+            <Setter Property="FontWeight" Value="500"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+            <Setter Property="RenderTransform">
+                <Setter.Value>
+                    <ScaleTransform ScaleX="1" ScaleY="1"/>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Background" Value="#D4CABD"/>
+                    <Setter Property="Foreground" Value="#B0A598"/>
+                </Trigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{StaticResource AccentHoverBrush}"/>
+                    <Trigger.EnterActions>
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX" To="1.04" Duration="0:0:0.12"/>
+                                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY" To="1.04" Duration="0:0:0.12"/>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </Trigger.EnterActions>
+                    <Trigger.ExitActions>
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX" To="1" Duration="0:0:0.12"/>
+                                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY" To="1" Duration="0:0:0.12"/>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </Trigger.ExitActions>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="RenderTransform">
+                        <Setter.Value>
+                            <ScaleTransform ScaleX="0.98" ScaleY="0.98"/>
+                        </Setter.Value>
+                    </Setter>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="NewChatButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="FontWeight" Value="500"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{StaticResource AccentHoverBrush}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- ====== MESSAGE TEMPLATE WITH REFINED STYLING ====== -->
+        <DataTemplate x:Key="MessageTemplate">
+            <Grid Margin="0,4">
+                <Grid.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="Copy" Command="{Binding DataContext.CopyMessageCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
+                        <MenuItem Header="Edit" Command="{Binding DataContext.EditMessageCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" Visibility="{Binding IsUser, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                    </ContextMenu>
+                </Grid.ContextMenu>
+
+                <!-- User message -->
+                <Border Style="{StaticResource UserMessageStyle}" Visibility="{Binding IsUser, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <StackPanel>
+                        <TextBlock Text="{Binding Content}"
+                                   TextWrapping="Wrap"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   FontSize="14"
+                                   LineHeight="20"
+                                   FontFamily="{StaticResource BodyFont}"/>
+                        <TextBlock Text="{Binding Timestamp, StringFormat='{}{0:HH:mm}'}"
+                                   FontSize="11"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   HorizontalAlignment="Right"
+                                   Margin="0,6,0,0"
+                                   FontFamily="{StaticResource BodyFont}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Assistant message -->
+                <Border Style="{StaticResource AssistantMessageStyle}" Visibility="{Binding IsAssistant, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <StackPanel>
+                        <TextBlock Text="{Binding Content}"
+                                   TextWrapping="Wrap"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   FontSize="14"
+                                   LineHeight="20"
+                                   FontFamily="{StaticResource BodyFont}"/>
+                        <TextBlock Text="{Binding Timestamp, StringFormat='{}{0:HH:mm}'}"
+                                   FontSize="11"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   HorizontalAlignment="Left"
+                                   Margin="0,6,0,0"
+                                   FontFamily="{StaticResource BodyFont}"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </DataTemplate>
+
+        <!-- Empty state template -->
+        <DataTemplate x:Key="EmptyStateTemplate">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="40">
+                <TextBlock Text="Jupi Home" 
+                           FontSize="36"
+                           FontWeight="Bold"
+                           FontFamily="{StaticResource HeadingFont}"
+                           Foreground="{StaticResource AccentBrush}"
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,8"/>
+                <TextBlock Text="Start a conversation" 
+                           FontSize="16"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,24"
+                           FontFamily="{StaticResource BodyFont}"/>
+                <TextBlock Text="Ask a question or share your thoughts." 
+                           FontSize="13"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           HorizontalAlignment="Center"
+                           TextAlignment="Center"
+                           FontFamily="{StaticResource BodyFont}"/>
+            </StackPanel>
+        </DataTemplate>
+
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="240"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Left sidebar - Conversation history -->
+        <Border Grid.Column="0" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="70"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Header with branding -->
+                <Border Grid.Row="0" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="16,20">
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="J" 
+                                   FontSize="28" 
+                                   FontWeight="Bold" 
+                                   FontFamily="{StaticResource BrandingFont}"
+                                   Foreground="{StaticResource AccentBrush}"
+                                   Margin="0,0,0,2"/>
+                        <TextBlock Text="Jupi Home" 
+                                   FontSize="13" 
+                                   FontWeight="500"
+                                   FontFamily="{StaticResource BodyFont}"
+                                   Foreground="{StaticResource TextPrimaryBrush}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- New Chat button -->
+                <Button Grid.Row="1" 
+                        Content="+ New Chat" 
+                        Style="{StaticResource NewChatButtonStyle}"
+                        Command="{Binding NewChatCommand}" 
+                        Margin="12,16,12,12" 
+                        Height="36"
+                        FontFamily="{StaticResource BodyFont}"/>
+
+                <!-- Conversation list -->
+                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="0,8,0,8">
+                    <ListBox x:Name="ConversationListBox"
+                             ItemsSource="{Binding Conversations}"
+                             SelectedItem="{Binding SelectedConversation}"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             ItemContainerStyle="{StaticResource ConversationItemStyle}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Title}"
+                                               FontSize="12"
+                                               Foreground="{StaticResource TextPrimaryBrush}"
+                                               TextTrimming="CharacterEllipsis"
+                                               MaxWidth="200"
+                                               FontWeight="500"
+                                               FontFamily="{StaticResource BodyFont}"/>
+                                    <TextBlock Text="{Binding UpdatedAt, StringFormat='{}{0:MMM d}'}"
+                                               FontSize="10"
+                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               Margin="0,4,0,0"
+                                               FontFamily="{StaticResource BodyFont}"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
+        <!-- Right side - Main chat area -->
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="60"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="32"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header with connection status -->
+            <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="20,12">
+                <Grid>
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Left" Orientation="Horizontal">
+                        <TextBlock Text="Conversation" 
+                                   FontSize="16" 
+                                   FontWeight="500"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   FontFamily="{StaticResource BodyFont}"/>
+                    </StackPanel>
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Right" Orientation="Horizontal">
+                        <Ellipse Width="8" Height="8" Margin="0,0,6,0">
+                            <Ellipse.Style>
+                                <Style TargetType="Ellipse">
+                                    <Setter Property="Fill" Value="{StaticResource ErrorBrush}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsConnected}" Value="True">
+                                            <Setter Property="Fill" Value="{StaticResource SuccessBrush}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Ellipse.Style>
+                        </Ellipse>
+                        <TextBlock Text="{Binding ConnectionStatus}" 
+                                   FontSize="11" 
+                                   Foreground="{StaticResource TextSecondaryBrush}" 
+                                   VerticalAlignment="Center"
+                                   FontFamily="{StaticResource BodyFont}"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Chat messages area -->
+            <Border Grid.Row="1" Background="{StaticResource BackgroundBrush}" Padding="0">
+                <Grid>
+                    <ScrollViewer x:Name="ChatScrollViewer" VerticalScrollBarVisibility="Auto">
+                        <ScrollViewer.Style>
+                            <Style TargetType="ScrollViewer">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasMessages}" Value="False">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ScrollViewer.Style>
+                        <ItemsControl ItemsSource="{Binding Messages}" 
+                                      ItemTemplate="{StaticResource MessageTemplate}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Margin="20,16,20,16"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <ContentControl ContentTemplate="{StaticResource EmptyStateTemplate}"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center">
+                        <ContentControl.Style>
+                            <Style TargetType="ContentControl">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasMessages}" Value="False">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ContentControl.Style>
+                    </ContentControl>
+                </Grid>
+            </Border>
+
+            <!-- Input area with refined styling -->
+            <Border Grid.Row="2" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="20">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBox x:Name="InputTextBox"
+                             Grid.Column="0"
+                             Text="{Binding InputText, UpdateSourceTrigger=PropertyChanged}"
+                             Background="{StaticResource BackgroundBrush}"
+                             Foreground="{StaticResource TextPrimaryBrush}"
+                             BorderBrush="{StaticResource BorderBrush}"
+                             BorderThickness="1"
+                             Padding="12,10"
+                             FontSize="13"
+                             VerticalContentAlignment="Top"
+                             TextWrapping="Wrap"
+                             MaxHeight="110"
+                             AcceptsReturn="True"
+                             VerticalScrollBarVisibility="Auto"
+                             FontFamily="{StaticResource BodyFont}">
+                        <TextBox.InputBindings>
+                            <KeyBinding Key="Return" Command="{Binding SendMessageCommand}"/>
+                        </TextBox.InputBindings>
+                    </TextBox>
+
+                    <Button Grid.Column="1"
+                            Content="✈"
+                            Command="{Binding SendMessageCommand}"
+                            Style="{StaticResource SendButtonStyle}"
+                            Margin="12,0,0,0"
+                            Height="40"
+                            Width="40"
+                            FontSize="18"
+                            Padding="0"
+                            ToolTip="Send message (Enter)"/>
+                </Grid>
+            </Border>
+
+            <!-- Status bar -->
+            <Border Grid.Row="3" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0">
+                <TextBlock x:Name="StatusText"
+                           Text="Ready"
+                           FontSize="9"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           VerticalAlignment="Center"
+                           Margin="20,0"
+                           FontFamily="{StaticResource BodyFont}"/>
+            </Border>
+        </Grid>
+
+    </Grid>
+</Window>
