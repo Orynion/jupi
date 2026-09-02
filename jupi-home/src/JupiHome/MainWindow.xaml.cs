@@ -3,6 +3,7 @@ using System.Collections.Specialized;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using Microsoft.Web.WebView2.Wpf;
 using JupiHome.Services;
 using JupiHome.Configuration;
 using JupiHome.ViewModels;
@@ -27,6 +28,10 @@ namespace JupiHome
         public MainWindow()
         {
             InitializeComponent();
+            MusicWebView.CreationProperties = new CoreWebView2CreationProperties
+            {
+                AdditionalBrowserArguments = "--autoplay-policy=no-user-gesture-required"
+            };
             _logger = new Logger();
             _settings = AppSettings.Load();
             _logger.Log("Jupi Home started");
@@ -110,6 +115,7 @@ namespace JupiHome
         {
             var half = TimeSpan.FromMilliseconds(120);
             var full = TimeSpan.FromMilliseconds(240);
+            var repeatFor = new RepeatBehavior(TimeSpan.FromSeconds(10));
             var easeOut = new QuadraticEase { EasingMode = EasingMode.EaseOut };
             var easeInOut = new QuadraticEase { EasingMode = EasingMode.EaseInOut };
 
@@ -117,6 +123,7 @@ namespace JupiHome
             var scale = new DoubleAnimationUsingKeyFrames();
             scale.KeyFrames.Add(new EasingDoubleKeyFrame(1.1, KeyTime.FromTimeSpan(half)) { EasingFunction = easeOut });
             scale.KeyFrames.Add(new EasingDoubleKeyFrame(1.0, KeyTime.FromTimeSpan(full)) { EasingFunction = easeInOut });
+            scale.RepeatBehavior = repeatFor;
             SendScale.BeginAnimation(ScaleTransform.ScaleXProperty, scale);
             SendScale.BeginAnimation(ScaleTransform.ScaleYProperty, scale);
 
@@ -124,12 +131,14 @@ namespace JupiHome
             var move = new DoubleAnimationUsingKeyFrames();
             move.KeyFrames.Add(new EasingDoubleKeyFrame(10, KeyTime.FromTimeSpan(half)) { EasingFunction = easeOut });
             move.KeyFrames.Add(new EasingDoubleKeyFrame(0, KeyTime.FromTimeSpan(full)) { EasingFunction = easeInOut });
+            move.RepeatBehavior = repeatFor;
             SendTranslate.BeginAnimation(TranslateTransform.XProperty, move);
 
             // Tiny rotation 0 -> 8 -> 0
             var tilt = new DoubleAnimationUsingKeyFrames();
             tilt.KeyFrames.Add(new EasingDoubleKeyFrame(8, KeyTime.FromTimeSpan(half)) { EasingFunction = easeOut });
             tilt.KeyFrames.Add(new EasingDoubleKeyFrame(0, KeyTime.FromTimeSpan(full)) { EasingFunction = easeInOut });
+            tilt.RepeatBehavior = repeatFor;
             SendRotate.BeginAnimation(RotateTransform.AngleProperty, tilt);
 
             // Air streaks: brief 1 -> 0 fade with a slight left-to-right drift
@@ -139,11 +148,74 @@ namespace JupiHome
 
         private static void AnimateStreak(UIElement streak, TranslateTransform translate)
         {
-            var life = TimeSpan.FromMilliseconds(200);
+            var life = TimeSpan.FromMilliseconds(300);
             var fade = new DoubleAnimation(1, 0, life) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } };
-            var drift = new DoubleAnimation(-4, 3, life) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } };
+            var drift = new DoubleAnimation(-4, 4, life) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } };
+            fade.RepeatBehavior = new RepeatBehavior(TimeSpan.FromSeconds(10));
+            drift.RepeatBehavior = new RepeatBehavior(TimeSpan.FromSeconds(10));
             streak.BeginAnimation(UIElement.OpacityProperty, fade);
             translate.BeginAnimation(TranslateTransform.XProperty, drift);
+        }
+
+        // V0.63: Light/Dark theme toggle.
+        private void ThemeToggleButton_Click(object sender, RoutedEventArgs e)
+        {
+            var next = ThemeManager.IsDarkMode ? ThemeManager.Light : ThemeManager.Dark;
+            ThemeManager.ApplyTheme(next);
+            if (ThemeToggleIcon != null)
+            {
+                ThemeToggleIcon.Text = ThemeManager.IsDarkMode ? "☀️" : "🌙";
+            }
+        }
+
+        // V0.63: drag-and-drop attachment support.
+        private void InputArea_DragOver(object sender, DragEventArgs e)
+        {
+            e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None;
+            e.Handled = true;
+        }
+
+        private void InputArea_Drop(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop) &&
+                e.Data.GetData(DataFormats.FileDrop) is string[] files &&
+                _viewModel != null)
+            {
+                foreach (var path in files)
+                {
+                    _viewModel.AddAttachmentFromPath(path);
+                }
+                e.Handled = true;
+            }
+        }
+
+        // V0.63: attach files via file picker.
+        private void AttachButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_viewModel == null)
+                return;
+
+            try
+            {
+                var dialog = new Microsoft.Win32.OpenFileDialog
+                {
+                    Title = "Attach files",
+                    Multiselect = true,
+                    CheckFileExists = true
+                };
+
+                if (dialog.ShowDialog(this) == true)
+                {
+                    foreach (var file in dialog.FileNames)
+                    {
+                        _viewModel.AddAttachmentFromPath(file);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Failed to open file attachment dialog", ex);
+            }
         }
 
         protected override void OnClosed(EventArgs e)

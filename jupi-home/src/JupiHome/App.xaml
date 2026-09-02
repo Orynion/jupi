@@ -3,5 +3,9 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
+        <!-- ====== SHARED TYPOGRAPHY (theme-independent) ====== -->
+        <FontFamily x:Key="HeadingFont">Handjet, Segoe UI, Arial</FontFamily>
+        <FontFamily x:Key="BrandingFont">Rum Raisin, Georgia, Serif</FontFamily>
+        <FontFamily x:Key="BodyFont">Segoe UI, Arial, sans-serif</FontFamily>
     </Application.Resources>
 </Application>

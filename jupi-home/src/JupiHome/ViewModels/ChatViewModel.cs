@@ -29,12 +29,22 @@ namespace JupiHome.ViewModels
         public ObservableCollection<ConversationMessage> Messages { get; }
         public ObservableCollection<ConversationSummary> Conversations { get; }
 
+        /// <summary>
+        /// Files the user has attached to the next message. The UI shows these
+        /// clearly; Saturnia only ever receives their file names as text
+        /// references (the backend cannot read file contents today).
+        /// </summary>
+        public ObservableCollection<FileAttachment> PendingAttachments { get; }
+
+        public bool HasPendingAttachments => PendingAttachments.Count > 0;
+
         public MusicPlayerViewModel? MusicPlayer => _musicPlayerViewModel;
 
         public ICommand SendMessageCommand { get; }
         public ICommand NewChatCommand { get; }
         public ICommand CopyMessageCommand { get; }
         public ICommand EditMessageCommand { get; }
+        public ICommand RemoveAttachmentCommand { get; }
 
         public event PropertyChangedEventHandler? PropertyChanged;
         public event EventHandler<Guid>? ConversationSelected;
@@ -48,12 +58,15 @@ namespace JupiHome.ViewModels
 
             Messages = new ObservableCollection<ConversationMessage>();
             Conversations = new ObservableCollection<ConversationSummary>();
+            PendingAttachments = new ObservableCollection<FileAttachment>();
+            PendingAttachments.CollectionChanged += (_, __) => OnPropertyChanged(nameof(HasPendingAttachments));
             Messages.CollectionChanged += (_, __) => OnPropertyChanged(nameof(HasMessages));
 
             SendMessageCommand = new RelayCommand(async () => await SendMessageAsync(), CanSendMessage);
             NewChatCommand = new RelayCommand(async () => await StartNewChatAsync());
             CopyMessageCommand = new RelayCommand<ConversationMessage>(CopyMessage);
             EditMessageCommand = new RelayCommand<ConversationMessage>(EditMessage);
+            RemoveAttachmentCommand = new RelayCommand<FileAttachment>(RemoveAttachment);
 
             // Start with a new conversation
             _currentConversation = _conversationHistoryService.CreateConversation();
@@ -137,7 +150,13 @@ namespace JupiHome.ViewModels
 
         private bool CanSendMessage()
         {
-            if (string.IsNullOrWhiteSpace(InputText) || IsSending)
+            if (IsSending)
+                return false;
+
+            var hasText = !string.IsNullOrWhiteSpace(InputText);
+            var hasAttachments = PendingAttachments.Count > 0;
+
+            if (!hasText && !hasAttachments)
                 return false;
 
             var intent = _musicIntentParser.Parse(InputText);
@@ -152,8 +171,27 @@ namespace JupiHome.ViewModels
             if (!CanSendMessage() || _currentConversation == null)
                 return;
 
+            // Capture attachments before clearing so they survive the async send.
+            var attachmentsToSend = PendingAttachments.ToList();
+
             var messageText = InputText.Trim();
             InputText = string.Empty;
+
+            // When files are attached, clearly reference them ahead of the text.
+            // Saturnia receives only these references today (it cannot read files).
+            if (attachmentsToSend.Count > 0)
+            {
+                var lines = attachmentsToSend
+                    .Select(a => $"[attached file: {a.FileName}]")
+                    .ToList();
+                if (!string.IsNullOrWhiteSpace(messageText))
+                {
+                    lines.Add(messageText);
+                }
+                messageText = string.Join("\n", lines);
+            }
+
+            PendingAttachments.Clear();
             IsSending = true;
 
             try
@@ -292,6 +330,38 @@ namespace JupiHome.ViewModels
                 // This does not mutate backend conversation or regenerate responses
                 InputText = message.Content;
                 _logger.Log("Loaded message for editing (local only)");
+            }
+        }
+
+        // V0.63: file attachment support.
+        public void AddAttachmentFromPath(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+                return;
+
+            try
+            {
+                var attachment = FileAttachment.FromPath(path);
+
+                // Avoid duplicate attachments of the same file.
+                if (PendingAttachments.Any(a => string.Equals(a.FilePath, path, StringComparison.OrdinalIgnoreCase)))
+                    return;
+
+                PendingAttachments.Add(attachment);
+                _logger.Log($"Attachment added: {attachment.FileName}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to add attachment '{path}'", ex);
+            }
+        }
+
+        private void RemoveAttachment(FileAttachment? attachment)
+        {
+            if (attachment != null)
+            {
+                PendingAttachments.Remove(attachment);
+                _logger.Log($"Attachment removed: {attachment.FileName}");
             }
         }
 

@@ -14,6 +14,12 @@ namespace JupiHome.Converters
     /// </summary>
     public class MarkdownToFlowDocumentConverter : IValueConverter
     {
+        /// <summary>
+        /// Set by ThemeManager when the theme changes. The converter is static
+        /// and cached by WPF, so this flag tells it which palette to use.
+        /// </summary>
+        public static bool IsDarkMode { get; set; }
+
         private static readonly MarkdownPipeline _pipeline = new MarkdownPipelineBuilder()
             .UseSupportedExtensions()
             .Build();
@@ -75,13 +81,38 @@ namespace JupiHome.Converters
             // Note: We can't add UI elements (buttons) here because converters
             // can be called from non-UI threads which causes crashes
 
+            Color codeBackgroundColor;
+            Color codeBorderColor;
+            Color inlineBackgroundColor;
+            Color inlineForegroundColor;
+
+            if (IsDarkMode)
+            {
+                codeBackgroundColor = Color.FromRgb(0x2D, 0x28, 0x25);
+                codeBorderColor = Color.FromRgb(0x3D, 0x38, 0x33);
+                inlineBackgroundColor = Color.FromRgb(0x33, 0x2E, 0x2A);
+                inlineForegroundColor = Color.FromRgb(0xE5, 0x73, 0x73);
+            }
+            else
+            {
+                codeBackgroundColor = Color.FromRgb(0xF8, 0xF8, 0xF8);
+                codeBorderColor = Color.FromRgb(0xE0, 0xE0, 0xE0);
+                inlineBackgroundColor = Color.FromRgb(0xF0, 0xF0, 0xF0);
+                inlineForegroundColor = Color.FromRgb(0xC8, 0x00, 0x00);
+            }
+
+            var codeBackground = new SolidColorBrush(codeBackgroundColor);
+            var codeBorder = new SolidColorBrush(codeBorderColor);
+            var inlineBackground = new SolidColorBrush(inlineBackgroundColor);
+            var inlineForeground = new SolidColorBrush(inlineForegroundColor);
+
             foreach (var section in document.Blocks.OfType<Section>().ToList())
             {
                 // Style sections that look like code blocks
                 if (section.Background != null)
                 {
-                    section.Background = new SolidColorBrush(Color.FromRgb(248, 248, 248));
-                    section.BorderBrush = new SolidColorBrush(Color.FromRgb(224, 224, 224));
+                    section.Background = codeBackground;
+                    section.BorderBrush = codeBorder;
                     section.BorderThickness = new Thickness(1);
                     section.Padding = new Thickness(12, 8, 12, 8);
                     section.Margin = new Thickness(0, 8, 0, 8);
@@ -96,16 +127,16 @@ namespace JupiHome.Converters
                     // Check if this is inline code (monospace font)
                     if (inline.FontFamily != null && inline.FontFamily.Source.Contains("Consolas"))
                     {
-                        inline.Background = new SolidColorBrush(Color.FromRgb(240, 240, 240));
-                        inline.Foreground = new SolidColorBrush(Color.FromRgb(200, 0, 0));
+                        inline.Background = inlineBackground;
+                        inline.Foreground = inlineForeground;
                     }
                 }
 
                 // Style code block paragraphs
                 if (para.Background != null && para.FontFamily?.Source.Contains("Consolas") == true)
                 {
-                    para.Background = new SolidColorBrush(Color.FromRgb(248, 248, 248));
-                    para.BorderBrush = new SolidColorBrush(Color.FromRgb(224, 224, 224));
+                    para.Background = codeBackground;
+                    para.BorderBrush = codeBorder;
                     para.BorderThickness = new Thickness(1);
                     para.Padding = new Thickness(12, 8, 12, 8);
                     para.Margin = new Thickness(0, 8, 0, 8);

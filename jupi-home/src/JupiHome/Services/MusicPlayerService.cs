@@ -61,7 +61,17 @@ namespace JupiHome.Services
             try
             {
                 await EnsureWebViewReadyAsync();
-                _webView.CoreWebView2?.Navigate(track.EmbedUrl);
+                if (_webView.CoreWebView2 == null)
+                {
+                    throw new InvalidOperationException("WebView2 did not finish initializing.");
+                }
+
+                var request = _webView.CoreWebView2.Environment.CreateWebResourceRequest(
+                    track.EmbedUrl,
+                    "GET",
+                    null,
+                    "Referer: https://www.youtube.com/\r\n");
+                _webView.CoreWebView2.NavigateWithWebResourceRequest(request);
             }
             catch (Exception ex)
             {
@@ -178,6 +188,7 @@ namespace JupiHome.Services
                     await _webView.EnsureCoreWebView2Async();
                 }
             }
+
         }
     }
 }

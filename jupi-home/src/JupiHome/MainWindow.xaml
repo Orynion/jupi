@@ -8,34 +8,13 @@
         mc:Ignorable="d"
         Title="Jupi Home" Height="700" Width="1100" MinWidth="800" MinHeight="500"
         WindowStartupLocation="CenterScreen"
-        Background="#FEFBF7"
+        Background="{DynamicResource BackgroundBrush}"
         Loaded="Window_Loaded">
 
     <Window.Resources>
         <!-- Converters -->
         <local:MarkdownToFlowDocumentConverter x:Key="MarkdownConverter"/>
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
-
-        <!-- ====== PHASE 5: WARM LIGHT THEME COLOR PALETTE ====== -->
-        <!-- Warm, restrained, expressive palette -->
-        <SolidColorBrush x:Key="BackgroundBrush" Color="#FEFBF7"/>
-        <SolidColorBrush x:Key="SurfaceBrush" Color="#FFFCF9"/>
-        <SolidColorBrush x:Key="BorderBrush" Color="#E8E3DC"/>
-        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#3D3028"/>
-        <SolidColorBrush x:Key="TextSecondaryBrush" Color="#7D6D60"/>
-        <SolidColorBrush x:Key="AccentBrush" Color="#8B7355"/>
-        <SolidColorBrush x:Key="AccentHoverBrush" Color="#7A6347"/>
-        <SolidColorBrush x:Key="UserMessageBgBrush" Color="#F5EFEB"/>
-        <SolidColorBrush x:Key="UserMessageBorderBrush" Color="#E0D5CA"/>
-        <SolidColorBrush x:Key="AssistantMessageBgBrush" Color="#FFFCF9"/>
-        <SolidColorBrush x:Key="ErrorBrush" Color="#C64545"/>
-        <SolidColorBrush x:Key="SuccessBrush" Color="#6B8E7F"/>
-
-        <!-- ====== TYPOGRAPHY: Handjet and Rum Raisin ====== -->
-        <!-- Font families with fallbacks -->
-        <FontFamily x:Key="HeadingFont">Handjet, Segoe UI, Arial</FontFamily>
-        <FontFamily x:Key="BrandingFont">Rum Raisin, Georgia, Serif</FontFamily>
-        <FontFamily x:Key="BodyFont">Segoe UI, Arial, sans-serif</FontFamily>
 
         <!-- Conversation list item style -->
         <Style x:Key="ConversationItemStyle" TargetType="ListBoxItem">
@@ -55,18 +34,18 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="#F5EFEB"/>
+                    <Setter Property="Background" Value="{DynamicResource SelectionBrush}"/>
                 </Trigger>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#FEFAF6"/>
+                    <Setter Property="Background" Value="{DynamicResource HoverBrush}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
 
         <!-- ====== REFINED MESSAGE STYLES (No Huge Bubbles) ====== -->
         <Style x:Key="UserMessageStyle" TargetType="Border">
-            <Setter Property="Background" Value="{StaticResource UserMessageBgBrush}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource UserMessageBorderBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource UserMessageBgBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource UserMessageBorderBrush}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="CornerRadius" Value="4"/>
             <Setter Property="Padding" Value="12,8"/>
@@ -76,7 +55,7 @@
         </Style>
 
         <Style x:Key="AssistantMessageStyle" TargetType="Border">
-            <Setter Property="Background" Value="{StaticResource AssistantMessageBgBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource AssistantMessageBgBrush}"/>
             <Setter Property="BorderBrush" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="CornerRadius" Value="0"/>
@@ -88,7 +67,7 @@
 
         <!-- Primary button with paper-plane send interaction -->
         <Style x:Key="SendButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="18,10"/>
@@ -114,11 +93,11 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsEnabled" Value="False">
-                    <Setter Property="Background" Value="#D4CABD"/>
-                    <Setter Property="Foreground" Value="#B0A598"/>
+                    <Setter Property="Background" Value="{DynamicResource DisabledBgBrush}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource DisabledFgBrush}"/>
                 </Trigger>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{StaticResource AccentHoverBrush}"/>
+                    <Setter Property="Background" Value="{DynamicResource AccentHoverBrush}"/>
                     <Trigger.EnterActions>
                         <BeginStoryboard>
                             <Storyboard>
@@ -147,7 +126,7 @@
         </Style>
 
         <Style x:Key="NewChatButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="12,8"/>
@@ -167,7 +146,7 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{StaticResource AccentHoverBrush}"/>
+                    <Setter Property="Background" Value="{DynamicResource AccentHoverBrush}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -187,13 +166,13 @@
                     <StackPanel>
                         <TextBlock Text="{Binding Content}"
                                    TextWrapping="Wrap"
-                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                    FontSize="14"
                                    LineHeight="20"
                                    FontFamily="{StaticResource BodyFont}"/>
                         <TextBlock Text="{Binding Timestamp, StringFormat='{}{0:HH:mm}'}"
                                    FontSize="11"
-                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
                                    HorizontalAlignment="Right"
                                    Margin="0,6,0,0"
                                    FontFamily="{StaticResource BodyFont}"/>
@@ -203,15 +182,17 @@
                 <!-- Assistant message -->
                 <Border Style="{StaticResource AssistantMessageStyle}" Visibility="{Binding IsAssistant, Converter={StaticResource BoolToVisibilityConverter}}">
                     <StackPanel>
-                        <TextBlock Text="{Binding Content}"
-                                   TextWrapping="Wrap"
-                                   Foreground="{StaticResource TextPrimaryBrush}"
-                                   FontSize="14"
-                                   LineHeight="20"
-                                   FontFamily="{StaticResource BodyFont}"/>
+                        <FlowDocumentScrollViewer Document="{Binding Content, Converter={StaticResource MarkdownConverter}}"
+                                                  VerticalScrollBarVisibility="Disabled"
+                                                  HorizontalScrollBarVisibility="Auto"
+                                                  Background="Transparent"
+                                                  BorderThickness="0"
+                                                  Padding="0"
+                                                  IsToolBarVisible="False"
+                                                  FontFamily="{StaticResource BodyFont}"/>
                         <TextBlock Text="{Binding Timestamp, StringFormat='{}{0:HH:mm}'}"
                                    FontSize="11"
-                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
                                    HorizontalAlignment="Left"
                                    Margin="0,6,0,0"
                                    FontFamily="{StaticResource BodyFont}"/>
@@ -222,9 +203,9 @@
 
         <!-- ====== MUSIC PANEL STYLES ====== -->
         <Style x:Key="MusicButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
-            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="14,7"/>
             <Setter Property="Margin" Value="0,0,8,0"/>
@@ -247,10 +228,10 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#F5EFEB"/>
+                    <Setter Property="Background" Value="{DynamicResource SelectionBrush}"/>
                 </Trigger>
                 <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+                    <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
                     <Setter Property="Foreground" Value="White"/>
                 </Trigger>
             </Style.Triggers>
@@ -263,18 +244,18 @@
                            FontSize="36"
                            FontWeight="Bold"
                            FontFamily="{StaticResource HeadingFont}"
-                           Foreground="{StaticResource AccentBrush}"
+                           Foreground="{DynamicResource AccentBrush}"
                            HorizontalAlignment="Center"
                            Margin="0,0,0,8"/>
                 <TextBlock Text="Start a conversation" 
                            FontSize="16"
-                           Foreground="{StaticResource TextSecondaryBrush}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
                            HorizontalAlignment="Center"
                            Margin="0,0,0,24"
                            FontFamily="{StaticResource BodyFont}"/>
                 <TextBlock Text="Ask a question or share your thoughts." 
                            FontSize="13"
-                           Foreground="{StaticResource TextSecondaryBrush}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
                            HorizontalAlignment="Center"
                            TextAlignment="Center"
                            FontFamily="{StaticResource BodyFont}"/>
@@ -290,7 +271,7 @@
         </Grid.ColumnDefinitions>
 
         <!-- Left sidebar - Conversation history -->
-        <Border Grid.Column="0" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0">
+        <Border Grid.Column="0" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="70"/>
@@ -299,13 +280,13 @@
                 </Grid.RowDefinitions>
 
                 <!-- Header with branding -->
-                <Border Grid.Row="0" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="16,20">
+                <Border Grid.Row="0" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="16,20">
                     <StackPanel VerticalAlignment="Center">
                         <TextBlock Text="J" 
                                    FontSize="28" 
                                    FontWeight="Bold" 
                                    FontFamily="{StaticResource BrandingFont}"
-                                   Foreground="{StaticResource AccentBrush}"
+                                   Foreground="{DynamicResource AccentBrush}"
                                    Margin="0,0,0,2"/>
                     </StackPanel>
                 </Border>
@@ -332,14 +313,14 @@
                                 <StackPanel>
                                     <TextBlock Text="{Binding Title}"
                                                FontSize="12"
-                                               Foreground="{StaticResource TextPrimaryBrush}"
+                                               Foreground="{DynamicResource TextPrimaryBrush}"
                                                TextTrimming="CharacterEllipsis"
                                                MaxWidth="200"
                                                FontWeight="500"
                                                FontFamily="{StaticResource BodyFont}"/>
                                     <TextBlock Text="{Binding UpdatedAt, StringFormat='{}{0:MMM d}'}"
                                                FontSize="10"
-                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
                                                Margin="0,4,0,0"
                                                FontFamily="{StaticResource BodyFont}"/>
                                 </StackPanel>
@@ -360,24 +341,43 @@
             </Grid.RowDefinitions>
 
             <!-- Header with connection status -->
-            <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="20,12">
+            <Border Grid.Row="0" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="20,12">
                 <Grid>
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Left" Orientation="Horizontal">
     <TextBlock Text="Conversation" 
                FontSize="16" 
                FontWeight="500"
-               Foreground="{StaticResource TextPrimaryBrush}"
+               Foreground="{DynamicResource TextPrimaryBrush}"
                FontFamily="{StaticResource BodyFont}"/>
     
 </StackPanel>
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Right" Orientation="Horizontal">
+                        <!-- V0.63: Light/Dark theme toggle -->
+                        <Button x:Name="ThemeToggleButton"
+                                Click="ThemeToggleButton_Click"
+                                ToolTip="Toggle light / dark theme"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Padding="4,2"
+                                Cursor="Hand"
+                                VerticalAlignment="Center"
+                                Margin="0,0,14,0">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="4">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Button.Template>
+                            <TextBlock x:Name="ThemeToggleIcon" Text="🌙" FontSize="14"/>
+                        </Button>
                         <Ellipse Width="8" Height="8" Margin="0,0,6,0">
                             <Ellipse.Style>
                                 <Style TargetType="Ellipse">
-                                    <Setter Property="Fill" Value="{StaticResource ErrorBrush}"/>
+                                    <Setter Property="Fill" Value="{DynamicResource ErrorBrush}"/>
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding IsConnected}" Value="True">
-                                            <Setter Property="Fill" Value="{StaticResource SuccessBrush}"/>
+                                            <Setter Property="Fill" Value="{DynamicResource SuccessBrush}"/>
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
@@ -385,7 +385,7 @@
                         </Ellipse>
                         <TextBlock Text="{Binding ConnectionStatus}" 
                                    FontSize="11" 
-                                   Foreground="{StaticResource TextSecondaryBrush}" 
+                                   Foreground="{DynamicResource TextSecondaryBrush}" 
                                    VerticalAlignment="Center"
                                    FontFamily="{StaticResource BodyFont}"/>
                     </StackPanel>
@@ -393,7 +393,7 @@
             </Border>
 
             <!-- Chat messages area -->
-            <Border Grid.Row="1" Background="{StaticResource BackgroundBrush}" Padding="0">
+            <Border Grid.Row="1" Background="{DynamicResource BackgroundBrush}" Padding="0">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -402,8 +402,8 @@
 
                     <!-- ====== MUSIC PANEL (embedded WebView2 YouTube player) ====== -->
                     <Border Grid.Row="0"
-                            Background="{StaticResource SurfaceBrush}"
-                            BorderBrush="{StaticResource BorderBrush}"
+                            Background="{DynamicResource SurfaceBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="0,0,0,1"
                             Padding="16,12"
                             Visibility="{Binding MusicPlayer.IsPanelVisible, Converter={StaticResource BoolToVisibilityConverter}}">
@@ -422,20 +422,20 @@
                                 <StackPanel VerticalAlignment="Center">
                                     <TextBlock Text="{Binding MusicPlayer.TrackTitle}"
                                                FontSize="14" FontWeight="600"
-                                               Foreground="{StaticResource TextPrimaryBrush}"
+                                               Foreground="{DynamicResource TextPrimaryBrush}"
                                                TextTrimming="CharacterEllipsis"
                                                MaxWidth="460"
                                                FontFamily="{StaticResource BodyFont}"/>
                                     <TextBlock Text="{Binding MusicPlayer.ChannelTitle}"
                                                FontSize="11"
-                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
                                                Margin="0,2,0,0"
                                                FontFamily="{StaticResource BodyFont}"/>
                                 </StackPanel>
                                 <TextBlock Grid.Column="1"
                                            Text="{Binding MusicPlayer.StatusText}"
                                            FontSize="11"
-                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
                                            VerticalAlignment="Center"
                                            Margin="12,0,0,0"
                                            FontFamily="{StaticResource BodyFont}"/>
@@ -448,7 +448,7 @@
                                 </Grid.ColumnDefinitions>
 
                                 <!-- WebView2 YouTube player -->
-                                <Border BorderBrush="{StaticResource BorderBrush}"
+                                <Border BorderBrush="{DynamicResource BorderBrush}"
                                         BorderThickness="1"
                                         CornerRadius="4"
                                         ClipToBounds="True">
@@ -469,7 +469,7 @@
                                                 Style="{StaticResource MusicButtonStyle}"/>
                                     </StackPanel>
                                     <TextBlock Text="{Binding MusicPlayer.ErrorMessage}"
-                                               Foreground="{StaticResource ErrorBrush}"
+                                               Foreground="{DynamicResource ErrorBrush}"
                                                FontSize="11"
                                                TextWrapping="Wrap"
                                                MaxWidth="420"
@@ -523,19 +523,95 @@
             </Border>
 
             <!-- Input area with refined styling -->
-            <Border Grid.Row="2" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="20">
+            <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="20"
+                    AllowDrop="True" DragOver="InputArea_DragOver" Drop="InputArea_Drop">
                 <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
+                    <!-- V0.63: pending attachment pills -->
+                    <ItemsControl Grid.Row="0" Grid.ColumnSpan="3"
+                                  ItemsSource="{Binding PendingAttachments}"
+                                  Margin="0,0,0,8">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="{DynamicResource BackgroundBrush}"
+                                        BorderBrush="{DynamicResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="4"
+                                        Padding="6,3"
+                                        Margin="0,0,6,4">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding Icon}" FontSize="12" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{Binding FileName}"
+                                                   FontSize="11"
+                                                   VerticalAlignment="Center"
+                                                   Margin="4,0,0,0"
+                                                   MaxWidth="160"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                   FontFamily="{StaticResource BodyFont}"/>
+                                        <TextBlock Text="{Binding SizeText}"
+                                                   FontSize="10"
+                                                   VerticalAlignment="Center"
+                                                   Margin="6,0,0,0"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                                   FontFamily="{StaticResource BodyFont}"/>
+                                        <Button Content="✕"
+                                                FontSize="10"
+                                                Background="Transparent"
+                                                BorderThickness="0"
+                                                Padding="2,0"
+                                                Margin="6,0,0,0"
+                                                Cursor="Hand"
+                                                VerticalAlignment="Center"
+                                                Foreground="{DynamicResource TextSecondaryBrush}"
+                                                Command="{Binding DataContext.RemoveAttachmentCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Attach button -->
+                    <Button Grid.Row="1" Grid.Column="0"
+                            VerticalAlignment="Stretch"
+                            Width="40"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Cursor="Hand"
+                            Click="AttachButton_Click"
+                            ToolTip="Attach files (or drag and drop)">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="{TemplateBinding Background}" Padding="0">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                        <TextBlock Text="📎" FontSize="16" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                    </Button>
+
                     <TextBox x:Name="InputTextBox"
-                             Grid.Column="0"
+                             Grid.Row="1" Grid.Column="1"
+                             Margin="8,0,0,0"
                              Text="{Binding InputText, UpdateSourceTrigger=PropertyChanged}"
-                             Background="{StaticResource BackgroundBrush}"
-                             Foreground="{StaticResource TextPrimaryBrush}"
-                             BorderBrush="{StaticResource BorderBrush}"
+                             Background="{DynamicResource BackgroundBrush}"
+                             Foreground="{DynamicResource TextPrimaryBrush}"
+                             BorderBrush="{DynamicResource BorderBrush}"
                              BorderThickness="1"
                              Padding="12,10"
                              FontSize="13"
@@ -550,12 +626,12 @@
                         </TextBox.InputBindings>
                     </TextBox>
 
-                    <Grid Grid.Column="1" Margin="12,0,0,0" Width="40">
+                    <Grid Grid.Row="1" Grid.Column="2" Margin="12,0,0,0" Width="40">
                         <!-- Air streaks trailing the paper plane -->
                         <Border x:Name="StreakTop"
                                 Width="9" Height="2"
                                 CornerRadius="1"
-                                Background="{StaticResource AccentBrush}"
+                                Background="{DynamicResource AccentBrush}"
                                 Opacity="0"
                                 HorizontalAlignment="Left"
                                 VerticalAlignment="Center"
@@ -567,7 +643,7 @@
                         <Border x:Name="StreakBottom"
                                 Width="9" Height="2"
                                 CornerRadius="1"
-                                Background="{StaticResource AccentBrush}"
+                                Background="{DynamicResource AccentBrush}"
                                 Opacity="0"
                                 HorizontalAlignment="Left"
                                 VerticalAlignment="Center"
@@ -599,25 +675,25 @@
             </Border>
 
             <!-- Status bar -->
-            <Border Grid.Row="3" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0">
+            <Border Grid.Row="3" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
                 <TextBlock x:Name="StatusText"
                            Text="Ready"
                            FontSize="9"
-                           Foreground="{StaticResource TextSecondaryBrush}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
                            VerticalAlignment="Center"
                            Margin="20,0"
                            FontFamily="{StaticResource BodyFont}"/>
             </Border>
         </Grid>
 
-        <!-- Version label (V0.6) -->
-        <TextBlock Text="v0.6"
+        <!-- Version label (V0.63) -->
+        <TextBlock Text="v0.63"
                    Grid.Column="1"
                    HorizontalAlignment="Right"
                    VerticalAlignment="Bottom"
                    Margin="0,0,10,8"
                    FontSize="10"
-                   Foreground="{StaticResource TextSecondaryBrush}"
+                   Foreground="{DynamicResource TextSecondaryBrush}"
                    Opacity="0.7"
                    IsHitTestVisible="False"
                    FontFamily="{StaticResource BodyFont}"/>

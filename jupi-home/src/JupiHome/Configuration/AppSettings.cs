@@ -7,7 +7,7 @@ namespace JupiHome.Configuration
     public class AppSettings
     {
         public string ApplicationName { get; set; } = "JupiHome";
-        public string Version { get; set; } = "v0.5";
+        public string Version { get; set; } = "v0.63";
         public bool EnableLogging { get; set; } = true;
         public string LogPath { get; set; } = "logs";
         public string ThemeMode { get; set; } = "light";
