@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:JupiHome.Converters"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         mc:Ignorable="d"
         Title="Jupi Home" Height="700" Width="1100" MinWidth="800" MinHeight="500"
         WindowStartupLocation="CenterScreen"
@@ -219,6 +220,42 @@
             </Grid>
         </DataTemplate>
 
+        <!-- ====== MUSIC PANEL STYLES ====== -->
+        <Style x:Key="MusicButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="14,7"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="500"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontFamily" Value="{StaticResource BodyFont}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#F5EFEB"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
         <!-- Empty state template -->
         <DataTemplate x:Key="EmptyStateTemplate">
             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="40">
@@ -270,11 +307,6 @@
                                    FontFamily="{StaticResource BrandingFont}"
                                    Foreground="{StaticResource AccentBrush}"
                                    Margin="0,0,0,2"/>
-                        <TextBlock Text="Jupi Home" 
-                                   FontSize="13" 
-                                   FontWeight="500"
-                                   FontFamily="{StaticResource BodyFont}"
-                                   Foreground="{StaticResource TextPrimaryBrush}"/>
                     </StackPanel>
                 </Border>
 
@@ -331,12 +363,13 @@
             <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="20,12">
                 <Grid>
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Left" Orientation="Horizontal">
-                        <TextBlock Text="Conversation" 
-                                   FontSize="16" 
-                                   FontWeight="500"
-                                   Foreground="{StaticResource TextPrimaryBrush}"
-                                   FontFamily="{StaticResource BodyFont}"/>
-                    </StackPanel>
+    <TextBlock Text="Conversation" 
+               FontSize="16" 
+               FontWeight="500"
+               Foreground="{StaticResource TextPrimaryBrush}"
+               FontFamily="{StaticResource BodyFont}"/>
+    
+</StackPanel>
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Right" Orientation="Horizontal">
                         <Ellipse Width="8" Height="8" Margin="0,0,6,0">
                             <Ellipse.Style>
@@ -362,6 +395,94 @@
             <!-- Chat messages area -->
             <Border Grid.Row="1" Background="{StaticResource BackgroundBrush}" Padding="0">
                 <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- ====== MUSIC PANEL (embedded WebView2 YouTube player) ====== -->
+                    <Border Grid.Row="0"
+                            Background="{StaticResource SurfaceBrush}"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="0,0,0,1"
+                            Padding="16,12"
+                            Visibility="{Binding MusicPlayer.IsPanelVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Track info -->
+                            <Grid Grid.Row="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding MusicPlayer.TrackTitle}"
+                                               FontSize="14" FontWeight="600"
+                                               Foreground="{StaticResource TextPrimaryBrush}"
+                                               TextTrimming="CharacterEllipsis"
+                                               MaxWidth="460"
+                                               FontFamily="{StaticResource BodyFont}"/>
+                                    <TextBlock Text="{Binding MusicPlayer.ChannelTitle}"
+                                               FontSize="11"
+                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               Margin="0,2,0,0"
+                                               FontFamily="{StaticResource BodyFont}"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding MusicPlayer.StatusText}"
+                                           FontSize="11"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           VerticalAlignment="Center"
+                                           Margin="12,0,0,0"
+                                           FontFamily="{StaticResource BodyFont}"/>
+                            </Grid>
+
+                            <Grid Grid.Row="1" Margin="0,10,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="240"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- WebView2 YouTube player -->
+                                <Border BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="4"
+                                        ClipToBounds="True">
+                                    <wv2:WebView2 x:Name="MusicWebView" DefaultBackgroundColor="#000000"/>
+                                </Border>
+
+                                <!-- Playback controls -->
+                                <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Content="{Binding MusicPlayer.PlayPauseButtonText}"
+                                                Command="{Binding MusicPlayer.TogglePlayPauseCommand}"
+                                                Style="{StaticResource MusicButtonStyle}"/>
+                                        <Button Content="⏹ Stop"
+                                                Command="{Binding MusicPlayer.StopCommand}"
+                                                Style="{StaticResource MusicButtonStyle}"/>
+                                        <Button Content="⏭ Skip"
+                                                Command="{Binding MusicPlayer.SkipCommand}"
+                                                Style="{StaticResource MusicButtonStyle}"/>
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding MusicPlayer.ErrorMessage}"
+                                               Foreground="{StaticResource ErrorBrush}"
+                                               FontSize="11"
+                                               TextWrapping="Wrap"
+                                               MaxWidth="420"
+                                               Margin="0,8,0,0"
+                                               Visibility="{Binding MusicPlayer.HasError, Converter={StaticResource BoolToVisibilityConverter}}"
+                                               FontFamily="{StaticResource BodyFont}"/>
+                                </StackPanel>
+                            </Grid>
+                        </Grid>
+                    </Border>
+
+                    <!-- Chat scroll content -->
+                    <Grid Grid.Row="1">
                     <ScrollViewer x:Name="ChatScrollViewer" VerticalScrollBarVisibility="Auto">
                         <ScrollViewer.Style>
                             <Style TargetType="ScrollViewer">
@@ -397,6 +518,7 @@
                             </Style>
                         </ContentControl.Style>
                     </ContentControl>
+                    </Grid>
                 </Grid>
             </Border>
 
@@ -428,16 +550,51 @@
                         </TextBox.InputBindings>
                     </TextBox>
 
-                    <Button Grid.Column="1"
-                            Content="✈"
-                            Command="{Binding SendMessageCommand}"
-                            Style="{StaticResource SendButtonStyle}"
-                            Margin="12,0,0,0"
-                            Height="40"
-                            Width="40"
-                            FontSize="18"
-                            Padding="0"
-                            ToolTip="Send message (Enter)"/>
+                    <Grid Grid.Column="1" Margin="12,0,0,0" Width="40">
+                        <!-- Air streaks trailing the paper plane -->
+                        <Border x:Name="StreakTop"
+                                Width="9" Height="2"
+                                CornerRadius="1"
+                                Background="{StaticResource AccentBrush}"
+                                Opacity="0"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Center"
+                                Margin="-6,0,0,-7">
+                            <Border.RenderTransform>
+                                <TranslateTransform x:Name="StreakTopTranslate"/>
+                            </Border.RenderTransform>
+                        </Border>
+                        <Border x:Name="StreakBottom"
+                                Width="9" Height="2"
+                                CornerRadius="1"
+                                Background="{StaticResource AccentBrush}"
+                                Opacity="0"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Center"
+                                Margin="-6,7,0,0">
+                            <Border.RenderTransform>
+                                <TranslateTransform x:Name="StreakBottomTranslate"/>
+                            </Border.RenderTransform>
+                        </Border>
+                        <Grid x:Name="SendButtonHost" RenderTransformOrigin="0.5,0.5">
+                            <Grid.RenderTransform>
+                                <TransformGroup>
+                                    <ScaleTransform x:Name="SendScale"/>
+                                    <RotateTransform x:Name="SendRotate"/>
+                                    <TranslateTransform x:Name="SendTranslate"/>
+                                </TransformGroup>
+                            </Grid.RenderTransform>
+                            <Button Content="&#x2708;"
+                                    Command="{Binding SendMessageCommand}"
+                                    Style="{StaticResource SendButtonStyle}"
+                                    Height="40"
+                                    Width="40"
+                                    FontSize="18"
+                                    Padding="0"
+                                    Click="SendButton_Click"
+                                    ToolTip="Send message (Enter)"/>
+                        </Grid>
+                    </Grid>
                 </Grid>
             </Border>
 
@@ -453,5 +610,16 @@
             </Border>
         </Grid>
 
+        <!-- Version label (V0.6) -->
+        <TextBlock Text="v0.6"
+                   Grid.Column="1"
+                   HorizontalAlignment="Right"
+                   VerticalAlignment="Bottom"
+                   Margin="0,0,10,8"
+                   FontSize="10"
+                   Foreground="{StaticResource TextSecondaryBrush}"
+                   Opacity="0.7"
+                   IsHitTestVisible="False"
+                   FontFamily="{StaticResource BodyFont}"/>
     </Grid>
 </Window>

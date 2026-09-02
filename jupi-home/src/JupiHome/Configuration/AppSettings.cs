@@ -13,6 +13,7 @@ namespace JupiHome.Configuration
         public string ThemeMode { get; set; } = "light";
         public bool ShowWelcomeScreen { get; set; } = true;
         public string SaturniaBaseUrl { get; set; } = "http://127.0.0.1:5000";
+        public string YouTubeApiKey { get; set; } = string.Empty;
 
         public static AppSettings Load()
         {

@@ -16,6 +16,8 @@ namespace JupiHome.ViewModels
         private readonly SaturniaClient _saturniaClient;
         private readonly Logger _logger;
         private readonly ConversationHistoryService _conversationHistoryService;
+        private readonly MusicPlayerViewModel? _musicPlayerViewModel;
+        private readonly MusicIntentParser _musicIntentParser = new MusicIntentParser();
 
         private string _inputText = string.Empty;
         private bool _isSending;
@@ -27,6 +29,8 @@ namespace JupiHome.ViewModels
         public ObservableCollection<ConversationMessage> Messages { get; }
         public ObservableCollection<ConversationSummary> Conversations { get; }
 
+        public MusicPlayerViewModel? MusicPlayer => _musicPlayerViewModel;
+
         public ICommand SendMessageCommand { get; }
         public ICommand NewChatCommand { get; }
         public ICommand CopyMessageCommand { get; }
@@ -35,11 +39,12 @@ namespace JupiHome.ViewModels
         public event PropertyChangedEventHandler? PropertyChanged;
         public event EventHandler<Guid>? ConversationSelected;
 
-        public ChatViewModel(SaturniaClient saturniaClient, Logger logger, ConversationHistoryService conversationHistoryService)
+        public ChatViewModel(SaturniaClient saturniaClient, Logger logger, ConversationHistoryService conversationHistoryService, MusicPlayerViewModel? musicPlayerViewModel = null)
         {
             _saturniaClient = saturniaClient ?? throw new ArgumentNullException(nameof(saturniaClient));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _conversationHistoryService = conversationHistoryService ?? throw new ArgumentNullException(nameof(conversationHistoryService));
+            _musicPlayerViewModel = musicPlayerViewModel;
 
             Messages = new ObservableCollection<ConversationMessage>();
             Conversations = new ObservableCollection<ConversationSummary>();
@@ -132,7 +137,14 @@ namespace JupiHome.ViewModels
 
         private bool CanSendMessage()
         {
-            return !string.IsNullOrWhiteSpace(InputText) && !IsSending && IsConnected;
+            if (string.IsNullOrWhiteSpace(InputText) || IsSending)
+                return false;
+
+            var intent = _musicIntentParser.Parse(InputText);
+            if (intent.IsMusicCommand)
+                return true;
+
+            return IsConnected;
         }
 
         private async Task SendMessageAsync()
@@ -158,24 +170,63 @@ namespace JupiHome.ViewModels
                     _currentConversation.GenerateTitle();
                 }
 
-                // Send to Saturnia
-                var response = await _saturniaClient.SendMessageAsync(messageText);
-
-                if (response != null)
+                var intent = _musicIntentParser.Parse(messageText);
+                if (intent.IsMusicCommand && _musicPlayerViewModel != null)
                 {
-                    // Add assistant response
-                    var assistantMessage = new ConversationMessage("assistant", response);
+                    string responseText = string.Empty;
+                    switch (intent.CommandType)
+                    {
+                        case MusicCommandType.PlayRandom:
+                            responseText = await _musicPlayerViewModel.PlayRandomAsync();
+                            break;
+                        case MusicCommandType.PlayQuery:
+                            responseText = await _musicPlayerViewModel.PlayQueryAsync(intent.Query);
+                            break;
+                        case MusicCommandType.Pause:
+                            await _musicPlayerViewModel.PauseAsync();
+                            responseText = "⏸ Music paused.";
+                            break;
+                        case MusicCommandType.Resume:
+                            await _musicPlayerViewModel.ResumeAsync();
+                            responseText = "▶ Music resumed.";
+                            break;
+                        case MusicCommandType.Stop:
+                            await _musicPlayerViewModel.StopAsync();
+                            responseText = "⏹ Music stopped.";
+                            break;
+                        case MusicCommandType.Skip:
+                            await _musicPlayerViewModel.SkipAsync();
+                            responseText = "⏭ Skipped to next track.";
+                            break;
+                    }
+
+                    bool isError = _musicPlayerViewModel.HasError;
+                    var assistantMessage = new ConversationMessage("assistant", responseText, isError: isError);
                     Messages.Add(assistantMessage);
                     _currentConversation.Messages.Add(assistantMessage);
-                    _logger.Log($"Assistant: {response}");
+                    _logger.Log($"Assistant (Music): {responseText}");
                 }
                 else
                 {
-                    // Add error message
-                    var errorMessage = new ConversationMessage("assistant", "Failed to get response from Saturnia. Please check the connection.", isError: true);
-                    Messages.Add(errorMessage);
-                    _currentConversation.Messages.Add(errorMessage);
-                    _logger.LogError("Failed to get response from Saturnia");
+                    // Send to Saturnia
+                    var response = await _saturniaClient.SendMessageAsync(messageText);
+
+                    if (response != null)
+                    {
+                        // Add assistant response
+                        var assistantMessage = new ConversationMessage("assistant", response);
+                        Messages.Add(assistantMessage);
+                        _currentConversation.Messages.Add(assistantMessage);
+                        _logger.Log($"Assistant: {response}");
+                    }
+                    else
+                    {
+                        // Add error message
+                        var errorMessage = new ConversationMessage("assistant", "Failed to get response from Saturnia. Please check the connection.", isError: true);
+                        Messages.Add(errorMessage);
+                        _currentConversation.Messages.Add(errorMessage);
+                        _logger.LogError("Failed to get response from Saturnia");
+                    }
                 }
 
                 // Save conversation

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Specialized;
 using System.Windows;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
 using JupiHome.Services;
 using JupiHome.Configuration;
 using JupiHome.ViewModels;
@@ -16,6 +18,9 @@ namespace JupiHome
         private SaturniaClient? _saturniaClient;
         private ConnectionMonitor? _connectionMonitor;
         private ConversationHistoryService? _conversationHistoryService;
+        private YouTubeSearchService? _youtubeSearchService;
+        private MusicPlayerService? _musicPlayerService;
+        private MusicPlayerViewModel? _musicPlayerViewModel;
         private AppSettings _settings;
         private ChatViewModel? _viewModel;
 
@@ -35,7 +40,25 @@ namespace JupiHome
                 _connectionMonitor = new ConnectionMonitor(_saturniaClient, _logger);
                 _conversationHistoryService = new ConversationHistoryService(_logger);
 
-                _viewModel = new ChatViewModel(_saturniaClient, _logger, _conversationHistoryService);
+                // Music V1: services + view model
+                _youtubeSearchService = new YouTubeSearchService(_settings, _logger);
+                _musicPlayerService = new MusicPlayerService(_logger);
+                _musicPlayerViewModel = new MusicPlayerViewModel(_youtubeSearchService, _musicPlayerService, _logger);
+
+                _musicPlayerService.AttachWebView(MusicWebView);
+
+                // Eagerly initialize WebView2 when the runtime is present. Missing runtime
+                // or a collapsed panel is handled gracefully; playback retries lazily.
+                try
+                {
+                    await MusicWebView.EnsureCoreWebView2Async();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError("WebView2 runtime unavailable; music playback will be unavailable", ex);
+                }
+
+                _viewModel = new ChatViewModel(_saturniaClient, _logger, _conversationHistoryService, _musicPlayerViewModel);
                 DataContext = _viewModel;
 
                 await _viewModel.RefreshConversationsListAsync();
@@ -76,11 +99,59 @@ namespace JupiHome
             ChatScrollViewer.ScrollToBottom();
         }
 
+        // V0.6: lightweight send-button launch animation.
+        // Plays alongside the send command - message sending is never delayed.
+        private void SendButton_Click(object sender, RoutedEventArgs e)
+        {
+            PlaySendLaunchAnimation();
+        }
+
+        private void PlaySendLaunchAnimation()
+        {
+            var half = TimeSpan.FromMilliseconds(120);
+            var full = TimeSpan.FromMilliseconds(240);
+            var easeOut = new QuadraticEase { EasingMode = EasingMode.EaseOut };
+            var easeInOut = new QuadraticEase { EasingMode = EasingMode.EaseInOut };
+
+            // Scale 1 -> 1.1 -> 1
+            var scale = new DoubleAnimationUsingKeyFrames();
+            scale.KeyFrames.Add(new EasingDoubleKeyFrame(1.1, KeyTime.FromTimeSpan(half)) { EasingFunction = easeOut });
+            scale.KeyFrames.Add(new EasingDoubleKeyFrame(1.0, KeyTime.FromTimeSpan(full)) { EasingFunction = easeInOut });
+            SendScale.BeginAnimation(ScaleTransform.ScaleXProperty, scale);
+            SendScale.BeginAnimation(ScaleTransform.ScaleYProperty, scale);
+
+            // Forward movement 0 -> 10px -> 0
+            var move = new DoubleAnimationUsingKeyFrames();
+            move.KeyFrames.Add(new EasingDoubleKeyFrame(10, KeyTime.FromTimeSpan(half)) { EasingFunction = easeOut });
+            move.KeyFrames.Add(new EasingDoubleKeyFrame(0, KeyTime.FromTimeSpan(full)) { EasingFunction = easeInOut });
+            SendTranslate.BeginAnimation(TranslateTransform.XProperty, move);
+
+            // Tiny rotation 0 -> 8 -> 0
+            var tilt = new DoubleAnimationUsingKeyFrames();
+            tilt.KeyFrames.Add(new EasingDoubleKeyFrame(8, KeyTime.FromTimeSpan(half)) { EasingFunction = easeOut });
+            tilt.KeyFrames.Add(new EasingDoubleKeyFrame(0, KeyTime.FromTimeSpan(full)) { EasingFunction = easeInOut });
+            SendRotate.BeginAnimation(RotateTransform.AngleProperty, tilt);
+
+            // Air streaks: brief 1 -> 0 fade with a slight left-to-right drift
+            AnimateStreak(StreakTop, StreakTopTranslate);
+            AnimateStreak(StreakBottom, StreakBottomTranslate);
+        }
+
+        private static void AnimateStreak(UIElement streak, TranslateTransform translate)
+        {
+            var life = TimeSpan.FromMilliseconds(200);
+            var fade = new DoubleAnimation(1, 0, life) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } };
+            var drift = new DoubleAnimation(-4, 3, life) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } };
+            streak.BeginAnimation(UIElement.OpacityProperty, fade);
+            translate.BeginAnimation(TranslateTransform.XProperty, drift);
+        }
+
         protected override void OnClosed(EventArgs e)
         {
             _connectionMonitor?.Stop();
             _connectionMonitor?.Dispose();
             _saturniaClient?.Dispose();
+            MusicWebView.Dispose();
             _logger.Log("Jupi Home closed");
             base.OnClosed(e);
         }
