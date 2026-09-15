@@ -1,153 +1,161 @@
-<<<<<<< HEAD
 # Jupi
-Jupi by saturnia
-=======
-# AI or is it? 🤖
 
-An experimental AI assistant project featuring **Saturnia** - a curious, helpful, and occasionally quirky conversational AI with local math computation capabilities.
+Saturnia is the conversational assistant and local math helper in this repository.
+
+Repository: https://github.com/Orynion/jupi
 
 ## Overview
 
-This project explores building an AI assistant that combines the power of Google's Gemini API with local computational engines for precise mathematical operations. Saturnia maintains conversation context, remembers user information, and responds with a distinct personality that's friendly, thoughtful, and occasionally playful.
+This project contains a Python assistant that combines a Gemini-backed conversational flow with local math solving and persistent memory. The current implementation keeps conversation history in memory for the active session and persists selected conversation events to `saturnia_memory.json` so they can be restored when a new Saturnia process starts.
 
 ## Features
 
-### 🧠 Intelligent Conversation
-- Natural language processing powered by Gemini 3.1 Flash Lite
-- Context-aware responses that reference conversation history
-- Multiple greetings and personality-driven interactions
+### Conversation and personality
+- Natural-language conversation via the Gemini API
+- Greeting and general conversational routing
+- Personality-aware responses and quirks in the Saturnia flow
+- Persistent memory for remembered facts and conversation history
 
-### 🔢 Local Math Engines
-Mathematics is computed locally without sending calculations to external APIs:
-- **Basic Math**: Arithmetic operations (addition, subtraction, multiplication, division)
-- **Algebra**: Linear equation solving
-- **Quadratic Equations**: Quadratic formula solutions
-- **Fraction Algebra**: Solving equations with fractions
-- **Systems of Equations**: Solving simultaneous equations
-- **Powers and Roots**: Exponents and root calculations
+### Local math engines
+The project includes local solvers for:
+- basic arithmetic
+- algebraic equations
+- quadratic equations
+- fraction-based algebra
+- systems of equations
+- powers and roots
 
-### 💾 Persistent Memory
+These solvers are checked before falling back to the Gemini-based conversational path.
+
+### Persistent memory
 - Remembers user names and preferences
-- Stores conversation history (last 100 messages)
-- JSON-based memory storage that persists between sessions
+- Stores conversation history in `saturnia_memory.json`
+- Keeps the most recent 100 recorded messages in the persisted history
 
-### 🎭 Dynamic Personality
-Saturnia features context-aware quirks that respond to:
-- Success and excitement
-- Confusion and debugging moments
-- Programming discussions
-- General conversation flow
+### Interfaces
+- CLI chat entry point in `main.py`
+- Flask web app in `app/core/web.py`
+- JSON API at `/api/chat` for frontend integrations
 
-### 🌐 Multiple Interfaces
-- **CLI**: Command-line chat interface
-- **Web UI**: Flask-based web interface with clean chat design
-- **REST API**: JSON endpoint for integration with other frontends
+## Project structure
 
-## Project Structure
-
-```
-ai-or-is-it/
+```text
+jupi/
 ├── app/
 │   └── core/
-│       ├── brain.py                    # Main conversation orchestration
-│       ├── personality.py              # Saturnia's personality definition
-│       ├── quirks.py                   # Context-aware personality quirks
-│       ├── memory.py                   # Persistent memory system
-│       ├── router.py                   # Intent routing
-│       ├── math_engine.py              # Basic arithmetic
-│       ├── algebra_engine.py           # Linear algebra solver
-│       ├── quadratic_engine.py         # Quadratic equation solver
-│       ├── fraction_algebra_engine.py  # Fraction equation solver
-│       ├── system_algebra_engine.py    # System of equations solver
-│       ├── power_root_engine.py        # Powers and roots
-│       └── web.py                      # Flask web interface
+│       ├── algebra_engine.py
+│       ├── brain.py
+│       ├── console.py
+│       ├── fraction_algebra_engine.py
+│       ├── intent.py
+│       ├── math_engine.py
+│       ├── memory.py
+│       ├── music_tool.py
+│       ├── personality.py
+│       ├── power_root_engine.py
+│       ├── quadratic_engine.py
+│       ├── quirks.py
+│       ├── router.py
+│       ├── system_algebra_engine.py
+│       ├── test_*.py
+│       ├── tic_tac_toe_tool.py
+│       └── web.py
 ├── docs/
-│   └── personality.md                  # Detailed personality documentation
-├── main.py                             # CLI entry point
-├── requirements.txt                    # Python dependencies
-└── .env                                # Environment configuration (GEMINI_API_KEY)
+│   └── personality.md
+├── main.py
+├── memory.json
+├── README.md
+├── requirements.txt
+├── saturnia_memory.json
+└── jupi-home/
+    └── src/
 ```
 
 ## Installation
 
-1. **Clone the repository**
+1. Clone the repository:
+
 ```bash
-git clone https://github.com/yourusername/ai-or-is-it.git
-cd ai-or-is-it
+git clone https://github.com/Orynion/jupi.git
+cd jupi
 ```
 
-2. **Create a virtual environment**
+2. Create a virtual environment:
+
 ```bash
 python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 ```
 
-3. **Install dependencies**
+On Windows PowerShell:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+3. Install dependencies:
+
 ```bash
 pip install -r requirements.txt
 ```
 
-4. **Set up environment variables**
+4. Set up the Gemini API key in a `.env` file at the project root:
 
-Create a `.env` file in the project root:
-```
+```env
 GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
-Get your Gemini API key from [Google AI Studio](https://aistudio.google.com/app/apikey).
+See [Google AI Studio](https://aistudio.google.com/app/apikey) for an API key.
 
 ## Usage
 
-### Command-Line Interface
+### Command-line interface
 
-Run the CLI chat:
 ```bash
 python main.py
 ```
 
-Type your messages and press Enter. Type `exit` to quit.
+### Web interface
 
-### Web Interface
+Start the Flask app from the repository root:
 
-Start the web server:
 ```bash
-python app/core/web.py
+python -m app.core.web
 ```
 
-Open your browser to `http://localhost:5000`
+Then open `http://localhost:5000` in a browser.
 
-### API Endpoint
+### API endpoint
 
-Send POST requests to `/api/chat`:
 ```bash
 curl -X POST http://localhost:5000/api/chat \
   -H "Content-Type: application/json" \
   -d '{"message": "What is 2 + 2?"}'
 ```
 
-Response:
+Example response:
+
 ```json
 {
   "response": "4"
 }
 ```
 
-## Example Interactions
+## Example interactions
 
-### Basic Math
-```
+### Basic math
+```text
 You: What is 25 * 4?
 AI: 100
 ```
 
 ### Algebra
-```
+```text
 You: Solve 2x + 5 = 13
 AI: x = 4.0
 ```
 
 ### Memory
-```
+```text
 You: My name is Alex
 AI: Nice to meet you, Alex.
 
@@ -155,64 +163,39 @@ You: What's my name?
 AI: Your name is Alex.
 ```
 
-### Conversation
-```
-You: What do you think about Python?
-AI: Python is an excellent language for learning and building practical applications...
-```
-
 ## Personality
 
 Saturnia is designed to be:
 
-- **Curious**: Actively seeks information and asks follow-up questions
-- **Helpful**: Prioritizes usefulness in every response
-- **Honest**: Admits uncertainty rather than guessing
-- **Playful**: Adds appropriate humor without being distracting
-- **Transparent**: Openly identifies as an AI without pretending to be human
+- curious
+- helpful
+- honest about uncertainty
+- playful when appropriate
+- transparent about being an AI
 
-See `docs/personality.md` for detailed personality guidelines.
-
-## Dependencies
-
-- **Flask**: Web framework for the web interface
-- **python-dotenv**: Environment variable management
-- **google-generativeai**: Google Gemini API client
-- **Jinja2**: Template engine (Flask dependency)
-- **Werkzeug**: WSGI utilities (Flask dependency)
+See `docs/personality.md` for the current personality notes.
 
 ## Development
 
-### Running Tests
+Run the project test suite from the repository root:
+
 ```bash
-python app/core/test_math.py
+python -m unittest discover -s app/core -p "test*.py" -v
 ```
 
-### Memory Management
-
-Memory is stored in `saturnia_memory.json` in the project root. To clear memory, delete this file or use the memory management functions in the code.
-
-### Adding New Math Engines
-
-1. Create a new engine file in `app/core/`
-2. Implement a `solve(message)` function that returns a dict with `{"answer": result}` or `None`
-3. Import and call it in `brain.py` before the Gemini API call
+The current memory system stores persisted conversation data in `saturnia_memory.json`. To clear history, delete that file or use the memory helpers in `app/core/memory.py`.
 
 ## Contributing
 
-This is an experimental project. Contributions, ideas, and feedback are welcome.
+This repository is an experimental assistant project. Contributions and feedback are welcome.
 
 ## License
 
-This project is open source. Feel free to use and modify as needed.
+This project is provided as-is for local experimentation and development.
 
 ## Acknowledgments
 
-- Powered by Google's Gemini API
-- Built with Flask web framework
-- Inspired by the question: "AI or is it?" 🪐
+- Gemini for the conversational model integration
+- Flask for the web interface
+- Saturnia's local math and memory systems for the repository's core behavior
 
----
-
-**Note**: This project requires a valid Gemini API key. Make sure to keep your API key secure and never commit it to version control.
->>>>>>> 3db732d (chore: checkpoint before controlled AI development)
