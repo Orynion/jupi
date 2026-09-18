@@ -13,11 +13,16 @@ namespace JupiHome.ViewModels
 {
     public class ChatViewModel : INotifyPropertyChanged
     {
+        // Music features (YouTube playback via chat intents) are enabled.
+        // Intent commands like "play me the song believer" are routed to the
+        // music player instead of Saturnia chat.
+        private static readonly bool MusicFeaturesEnabled = true;
         private readonly SaturniaClient _saturniaClient;
         private readonly Logger _logger;
         private readonly ConversationHistoryService _conversationHistoryService;
         private readonly MusicPlayerViewModel? _musicPlayerViewModel;
         private readonly MusicIntentParser _musicIntentParser = new MusicIntentParser();
+        private readonly TicTacToeViewModel _ticTacToeViewModel = new TicTacToeViewModel();
 
         private string _inputText = string.Empty;
         private bool _isSending;
@@ -39,6 +44,7 @@ namespace JupiHome.ViewModels
         public bool HasPendingAttachments => PendingAttachments.Count > 0;
 
         public MusicPlayerViewModel? MusicPlayer => _musicPlayerViewModel;
+        public TicTacToeViewModel TicTacToe => _ticTacToeViewModel;
 
         public ICommand SendMessageCommand { get; }
         public ICommand NewChatCommand { get; }
@@ -48,6 +54,7 @@ namespace JupiHome.ViewModels
 
         public event PropertyChangedEventHandler? PropertyChanged;
         public event EventHandler<Guid>? ConversationSelected;
+        public event EventHandler<Models.WorkspaceNavigationRequest>? NavigationRequested;
 
         public ChatViewModel(SaturniaClient saturniaClient, Logger logger, ConversationHistoryService conversationHistoryService, MusicPlayerViewModel? musicPlayerViewModel = null)
         {
@@ -159,10 +166,6 @@ namespace JupiHome.ViewModels
             if (!hasText && !hasAttachments)
                 return false;
 
-            var intent = _musicIntentParser.Parse(InputText);
-            if (intent.IsMusicCommand)
-                return true;
-
             return IsConnected;
         }
 
@@ -175,6 +178,7 @@ namespace JupiHome.ViewModels
             var attachmentsToSend = PendingAttachments.ToList();
 
             var messageText = InputText.Trim();
+            FractionVisualizationRequest.TryCreate(messageText, out var requestedVisualization);
             InputText = string.Empty;
 
             // When files are attached, clearly reference them ahead of the text.
@@ -209,7 +213,18 @@ namespace JupiHome.ViewModels
                 }
 
                 var intent = _musicIntentParser.Parse(messageText);
-                if (intent.IsMusicCommand && _musicPlayerViewModel != null)
+                if (IsTicTacToeRequest(messageText))
+                {
+                    _ticTacToeViewModel.NewGame();
+                    var assistantMessage = new ConversationMessage("assistant", "Game board ready. You are X, and I will play O. Make your move!")
+                    {
+                        IsTicTacToeGame = true
+                    };
+                    Messages.Add(assistantMessage);
+                    _currentConversation.Messages.Add(assistantMessage);
+                    _logger.Log("Assistant: Started Tic-Tac-Toe");
+                }
+                else if (MusicFeaturesEnabled && intent.IsMusicCommand && _musicPlayerViewModel != null)
                 {
                     string responseText = string.Empty;
                     switch (intent.CommandType)
@@ -252,7 +267,10 @@ namespace JupiHome.ViewModels
                     if (response != null)
                     {
                         // Add assistant response
-                        var assistantMessage = new ConversationMessage("assistant", response);
+                        var assistantMessage = new ConversationMessage("assistant", response)
+                        {
+                            FractionVisualization = requestedVisualization
+                        };
                         Messages.Add(assistantMessage);
                         _currentConversation.Messages.Add(assistantMessage);
                         _logger.Log($"Assistant: {response}");
@@ -283,7 +301,13 @@ namespace JupiHome.ViewModels
             }
         }
 
-        private async Task StartNewChatAsync()
+        private static bool IsTicTacToeRequest(string message)
+        {
+            var normalized = message.ToLowerInvariant();
+            return normalized.Contains("tic tac toe") || normalized.Contains("tic-tac-toe") || normalized.Contains("noughts and crosses");
+        }
+
+        public async Task StartNewChatAsync()
         {
             try
             {
@@ -408,6 +432,20 @@ namespace JupiHome.ViewModels
             {
                 _logger.LogError("Failed to refresh conversations list", ex);
             }
+        }
+
+        /// <summary>
+        /// Request navigation to a specific conversation
+        /// </summary>
+        public void NavigateToConversation(Guid conversationId)
+        {
+            var request = new Models.WorkspaceNavigationRequest
+            {
+                TargetWorkspace = Models.WorkspaceType.Chat,
+                ConversationId = conversationId
+            };
+            NavigationRequested?.Invoke(this, request);
+            _ = LoadConversationAsync(conversationId);
         }
 
         protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)

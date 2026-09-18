@@ -1,0 +1,58 @@
+/* Jupi Web — Design Tokens */
+/* Port of Jupi Home LightTheme / DarkTheme as CSS Custom Properties */
+
+:root {
+  /* Light Theme */
+  --color-background: #FEFBF7;
+  --color-surface: #FFFCF9;
+  --color-border: #E8E3DC;
+  --color-text-primary: #3D3028;
+  --color-text-secondary: #7D6D60;
+  --color-accent: #8B7355;
+  --color-accent-hover: #7A6347;
+  --color-user-message-bg: #F5EFEB;
+  --color-user-message-border: #E0D5CA;
+  --color-assistant-message-bg: #FFFCF9;
+  --color-error: #C64545;
+  --color-success: #6B8E7F;
+
+  /* Typography */
+  --font-heading: Handjet, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-body: Segoe UI, system-ui, -apple-system, BlinkMacSystemFont, 'Cambria', 'Arial', sans-serif;
+  --font-branding: 'Rum Raisin', Georgia, serif;
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+
+  /* Border Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  /* Message Bubbles */
+  --message-corner-radius: var(--radius-sm);
+  --message-max-width: 550px;
+  --message-user-padding: var(--spacing-md) var(--spacing-lg);
+  --message-assistant-padding: var(--spacing-sm) var(--spacing-lg);
+}
+
+[data-theme="dark"] {
+  /* Dark Theme */
+  --color-background: #1C1917;
+  --color-surface: #252220;
+  --color-border: #3D3833;
+  --color-text-primary: #E8E0D6;
+  --color-text-secondary: #A3988C;
+  --color-accent: #A88B6F;
+  --color-accent-hover: #B89B7F;
+  --color-user-message-bg: #332E2A;
+  --color-user-message-border: #4A443E;
+  --color-assistant-message-bg: #252220;
+  --color-error: #D45C5C;
+  --color-success: #7DA898;
+}

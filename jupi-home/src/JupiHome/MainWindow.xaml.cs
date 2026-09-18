@@ -19,11 +19,13 @@ namespace JupiHome
         private SaturniaClient? _saturniaClient;
         private ConnectionMonitor? _connectionMonitor;
         private ConversationHistoryService? _conversationHistoryService;
+        private ConversationSearchService? _searchService;
         private YouTubeSearchService? _youtubeSearchService;
         private MusicPlayerService? _musicPlayerService;
         private MusicPlayerViewModel? _musicPlayerViewModel;
         private AppSettings _settings;
-        private ChatViewModel? _viewModel;
+        private ChatViewModel? _chatViewModel;
+        private MainViewModel? _viewModel;
 
         public MainWindow()
         {
@@ -44,6 +46,7 @@ namespace JupiHome
                 _saturniaClient = new SaturniaClient(_settings.SaturniaBaseUrl, _logger);
                 _connectionMonitor = new ConnectionMonitor(_saturniaClient, _logger);
                 _conversationHistoryService = new ConversationHistoryService(_logger);
+                _searchService = new ConversationSearchService(_conversationHistoryService, _logger);
 
                 // Music V1: services + view model
                 _youtubeSearchService = new YouTubeSearchService(_settings, _logger);
@@ -63,17 +66,23 @@ namespace JupiHome
                     _logger.LogError("WebView2 runtime unavailable; music playback will be unavailable", ex);
                 }
 
-                _viewModel = new ChatViewModel(_saturniaClient, _logger, _conversationHistoryService, _musicPlayerViewModel);
+                // V0.64: Create workspace ViewModels
+                _chatViewModel = new ChatViewModel(_saturniaClient, _logger, _conversationHistoryService, _musicPlayerViewModel);
+                var chatsViewModel = new ChatsViewModel(_conversationHistoryService, _logger);
+                var searchViewModel = new SearchViewModel(_searchService, _logger);
+
+                // V0.64: Create MainViewModel that coordinates workspaces
+                _viewModel = new MainViewModel(_chatViewModel, chatsViewModel, searchViewModel, _musicPlayerViewModel, _logger);
                 DataContext = _viewModel;
 
-                await _viewModel.RefreshConversationsListAsync();
-                _viewModel.Messages.CollectionChanged += Messages_CollectionChanged;
+                await _viewModel.InitializeAsync();
+                _chatViewModel.Messages.CollectionChanged += Messages_CollectionChanged;
                 _connectionMonitor.ConnectionStatusChanged += OnConnectionStatusChanged;
                 _connectionMonitor.Start();
 
                 ScrollToBottom();
                 StatusText.Text = "Ready";
-                _logger.Log("Jupi Home ready");
+                _logger.Log("Jupi Home v0.64 ready");
             }
             catch (Exception ex)
             {
@@ -91,9 +100,9 @@ namespace JupiHome
         {
             Dispatcher.Invoke(() =>
             {
-                if (_viewModel != null)
+                if (_chatViewModel != null)
                 {
-                    _viewModel.IsConnected = isConnected;
+                    _chatViewModel.IsConnected = isConnected;
                 }
                 _logger.Log($"Connection status: {isConnected}");
             });
@@ -115,7 +124,6 @@ namespace JupiHome
         {
             var half = TimeSpan.FromMilliseconds(120);
             var full = TimeSpan.FromMilliseconds(240);
-            var repeatFor = new RepeatBehavior(TimeSpan.FromSeconds(10));
             var easeOut = new QuadraticEase { EasingMode = EasingMode.EaseOut };
             var easeInOut = new QuadraticEase { EasingMode = EasingMode.EaseInOut };
 
@@ -123,7 +131,6 @@ namespace JupiHome
             var scale = new DoubleAnimationUsingKeyFrames();
             scale.KeyFrames.Add(new EasingDoubleKeyFrame(1.1, KeyTime.FromTimeSpan(half)) { EasingFunction = easeOut });
             scale.KeyFrames.Add(new EasingDoubleKeyFrame(1.0, KeyTime.FromTimeSpan(full)) { EasingFunction = easeInOut });
-            scale.RepeatBehavior = repeatFor;
             SendScale.BeginAnimation(ScaleTransform.ScaleXProperty, scale);
             SendScale.BeginAnimation(ScaleTransform.ScaleYProperty, scale);
 
@@ -131,15 +138,25 @@ namespace JupiHome
             var move = new DoubleAnimationUsingKeyFrames();
             move.KeyFrames.Add(new EasingDoubleKeyFrame(10, KeyTime.FromTimeSpan(half)) { EasingFunction = easeOut });
             move.KeyFrames.Add(new EasingDoubleKeyFrame(0, KeyTime.FromTimeSpan(full)) { EasingFunction = easeInOut });
-            move.RepeatBehavior = repeatFor;
             SendTranslate.BeginAnimation(TranslateTransform.XProperty, move);
 
             // Tiny rotation 0 -> 8 -> 0
             var tilt = new DoubleAnimationUsingKeyFrames();
             tilt.KeyFrames.Add(new EasingDoubleKeyFrame(8, KeyTime.FromTimeSpan(half)) { EasingFunction = easeOut });
             tilt.KeyFrames.Add(new EasingDoubleKeyFrame(0, KeyTime.FromTimeSpan(full)) { EasingFunction = easeInOut });
-            tilt.RepeatBehavior = repeatFor;
             SendRotate.BeginAnimation(RotateTransform.AngleProperty, tilt);
+
+            var pulseOpacity = new DoubleAnimation(0.5, 0, TimeSpan.FromMilliseconds(300))
+            {
+                EasingFunction = easeOut
+            };
+            var pulseScale = new DoubleAnimation(0.7, 1.45, TimeSpan.FromMilliseconds(300))
+            {
+                EasingFunction = easeOut
+            };
+            SendPulse.BeginAnimation(UIElement.OpacityProperty, pulseOpacity);
+            SendPulseScale.BeginAnimation(ScaleTransform.ScaleXProperty, pulseScale);
+            SendPulseScale.BeginAnimation(ScaleTransform.ScaleYProperty, pulseScale);
 
             // Air streaks: brief 1 -> 0 fade with a slight left-to-right drift
             AnimateStreak(StreakTop, StreakTopTranslate);
@@ -151,8 +168,6 @@ namespace JupiHome
             var life = TimeSpan.FromMilliseconds(300);
             var fade = new DoubleAnimation(1, 0, life) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } };
             var drift = new DoubleAnimation(-4, 4, life) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } };
-            fade.RepeatBehavior = new RepeatBehavior(TimeSpan.FromSeconds(10));
-            drift.RepeatBehavior = new RepeatBehavior(TimeSpan.FromSeconds(10));
             streak.BeginAnimation(UIElement.OpacityProperty, fade);
             translate.BeginAnimation(TranslateTransform.XProperty, drift);
         }
@@ -179,11 +194,11 @@ namespace JupiHome
         {
             if (e.Data.GetDataPresent(DataFormats.FileDrop) &&
                 e.Data.GetData(DataFormats.FileDrop) is string[] files &&
-                _viewModel != null)
+                _chatViewModel != null)
             {
                 foreach (var path in files)
                 {
-                    _viewModel.AddAttachmentFromPath(path);
+                    _chatViewModel.AddAttachmentFromPath(path);
                 }
                 e.Handled = true;
             }
@@ -192,7 +207,7 @@ namespace JupiHome
         // V0.63: attach files via file picker.
         private void AttachButton_Click(object sender, RoutedEventArgs e)
         {
-            if (_viewModel == null)
+            if (_chatViewModel == null)
                 return;
 
             try
@@ -208,13 +223,30 @@ namespace JupiHome
                 {
                     foreach (var file in dialog.FileNames)
                     {
-                        _viewModel.AddAttachmentFromPath(file);
+                        _chatViewModel.AddAttachmentFromPath(file);
                     }
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError("Failed to open file attachment dialog", ex);
+            }
+        }
+
+        // V0.64: Navigation button handlers
+        private void NewChatButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_chatViewModel != null)
+            {
+                _ = _chatViewModel.StartNewChatAsync();
+            }
+        }
+
+        private void SearchResult_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (sender is FrameworkElement element && element.Tag is Guid conversationId && _viewModel != null)
+            {
+                _viewModel.SearchViewModel.SelectResultCommand.Execute(new SearchResult { ConversationId = conversationId });
             }
         }
 

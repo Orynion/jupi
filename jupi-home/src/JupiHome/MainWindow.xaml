@@ -4,6 +4,8 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:JupiHome.Converters"
+        xmlns:controls="clr-namespace:JupiHome.Controls"
+        xmlns:models="clr-namespace:JupiHome.Models"
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         mc:Ignorable="d"
         Title="Jupi Home" Height="700" Width="1100" MinWidth="800" MinHeight="500"
@@ -15,6 +17,14 @@
         <!-- Converters -->
         <local:MarkdownToFlowDocumentConverter x:Key="MarkdownConverter"/>
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+
+        <!-- Retained only for the now-hidden legacy player controls. -->
+        <Style x:Key="MusicButtonStyle" TargetType="Button"/>
+
+        <DataTemplate DataType="{x:Type models:FractionVisualization}">
+            <controls:FractionPieChart Numerator="{Binding Numerator}"
+                                      Denominator="{Binding Denominator}"/>
+        </DataTemplate>
 
         <!-- Conversation list item style -->
         <Style x:Key="ConversationItemStyle" TargetType="ListBoxItem">
@@ -151,6 +161,62 @@
             </Style.Triggers>
         </Style>
 
+        <DataTemplate x:Key="TicTacToeTemplate">
+            <Border Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Padding="18"
+                    Margin="20,16"
+                    HorizontalAlignment="Center">
+                <StackPanel Width="300">
+                    <TextBlock Text="Tic-Tac-Toe"
+                               FontSize="20"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               FontFamily="{StaticResource HeadingFont}"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="{Binding Status}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               FontSize="12"
+                               Margin="0,4,0,14"
+                               HorizontalAlignment="Center"
+                               FontFamily="{StaticResource BodyFont}"/>
+                    <ItemsControl ItemsSource="{Binding Cells}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Rows="3" Columns="3"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Content="{Binding Mark}"
+                                        Command="{Binding DataContext.CellCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                    CommandParameter="{Binding Index}"
+                                        Height="72"
+                                        Margin="3"
+                                        FontSize="28"
+                                        FontWeight="SemiBold"
+                                        Foreground="{DynamicResource AccentBrush}"
+                                        Background="{DynamicResource BackgroundBrush}"
+                                        BorderBrush="{DynamicResource BorderBrush}"
+                                        BorderThickness="1"
+                                        Cursor="Hand"
+                                        FontFamily="{StaticResource HeadingFont}"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                        <ItemsControl.AlternationCount>9</ItemsControl.AlternationCount>
+                    </ItemsControl>
+                    <Button Content="New game"
+                            Command="{Binding NewGameCommand}"
+                            Margin="0,14,0,0"
+                            Padding="12,7"
+                            HorizontalAlignment="Center"
+                            Style="{StaticResource NewChatButtonStyle}"/>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
         <!-- ====== MESSAGE TEMPLATE WITH REFINED STYLING ====== -->
         <DataTemplate x:Key="MessageTemplate">
             <Grid Margin="0,4">
@@ -170,7 +236,7 @@
                                    FontSize="14"
                                    LineHeight="20"
                                    FontFamily="{StaticResource BodyFont}"/>
-                        <TextBlock Text="{Binding Timestamp, StringFormat='{}{0:HH:mm}'}"
+                            <TextBlock Text="{Binding Timestamp, StringFormat='{}{0:HH:mm}'}"
                                    FontSize="11"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    HorizontalAlignment="Right"
@@ -190,7 +256,32 @@
                                                   Padding="0"
                                                   IsToolBarVisible="False"
                                                   FontFamily="{StaticResource BodyFont}"/>
-                        <TextBlock Text="{Binding Timestamp, StringFormat='{}{0:HH:mm}'}"
+                        <ContentControl Content="{Binding FractionVisualization}">
+                            <ContentControl.Style>
+                                <Style TargetType="ContentControl">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding FractionVisualization}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ContentControl.Style>
+                        </ContentControl>
+                        <ContentControl Content="{Binding DataContext.ChatViewModel.TicTacToe, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        ContentTemplate="{DynamicResource TicTacToeTemplate}">
+                            <ContentControl.Style>
+                                <Style TargetType="ContentControl">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsTicTacToeGame}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ContentControl.Style>
+                        </ContentControl>
+                            <TextBlock Text="{Binding Timestamp, StringFormat='{}{0:HH:mm}'}"
                                    FontSize="11"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    HorizontalAlignment="Left"
@@ -201,59 +292,23 @@
             </Grid>
         </DataTemplate>
 
-        <!-- ====== MUSIC PANEL STYLES ====== -->
-        <Style x:Key="MusicButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="14,7"/>
-            <Setter Property="Margin" Value="0,0,8,0"/>
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="FontWeight" Value="500"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="FontFamily" Value="{StaticResource BodyFont}"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="4"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{DynamicResource SelectionBrush}"/>
-                </Trigger>
-                <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
-                    <Setter Property="Foreground" Value="White"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-
         <!-- Empty state template -->
         <DataTemplate x:Key="EmptyStateTemplate">
             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="40">
-                <TextBlock Text="Jupi Home" 
+                <TextBlock Text="Jupi Home"
                            FontSize="36"
                            FontWeight="Bold"
                            FontFamily="{StaticResource HeadingFont}"
                            Foreground="{DynamicResource AccentBrush}"
                            HorizontalAlignment="Center"
                            Margin="0,0,0,8"/>
-                <TextBlock Text="Start a conversation" 
+                <TextBlock Text="Start a conversation"
                            FontSize="16"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            HorizontalAlignment="Center"
                            Margin="0,0,0,24"
                            FontFamily="{StaticResource BodyFont}"/>
-                <TextBlock Text="Ask a question or share your thoughts." 
+                <TextBlock Text="Ask a question or share your thoughts."
                            FontSize="13"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            HorizontalAlignment="Center"
@@ -261,6 +316,39 @@
                            FontFamily="{StaticResource BodyFont}"/>
             </StackPanel>
         </DataTemplate>
+
+        <!-- Navigation button style -->
+        <Style x:Key="NavButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="FontWeight" Value="500"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="FontFamily" Value="{StaticResource BodyFont}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource HoverBrush}"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource SelectionBrush}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
 
     </Window.Resources>
 
@@ -270,69 +358,57 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <!-- Left sidebar - Conversation history -->
+        <!-- Left sidebar - Navigation -->
         <Border Grid.Column="0" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="70"/>
-                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <!-- Header with branding -->
                 <Border Grid.Row="0" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="16,20">
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="J" 
-                                   FontSize="28" 
-                                   FontWeight="Bold" 
+                        <TextBlock Text="J"
+                                   FontSize="28"
+                                   FontWeight="Bold"
                                    FontFamily="{StaticResource BrandingFont}"
-                                   Foreground="{DynamicResource AccentBrush}"
-                                   Margin="0,0,0,2"/>
+                                   Foreground="{DynamicResource AccentBrush}"/>
                     </StackPanel>
                 </Border>
 
-                <!-- New Chat button -->
-                <Button Grid.Row="1" 
-                        Content="+ New Chat" 
-                        Style="{StaticResource NewChatButtonStyle}"
-                        Command="{Binding NewChatCommand}" 
-                        Margin="12,16,12,12" 
-                        Height="36"
-                        FontFamily="{StaticResource BodyFont}"/>
+                <!-- Navigation buttons -->
+                <StackPanel Grid.Row="1" Margin="0,16,0,0">
+                    <Button Content="New Chat"
+                            Command="{Binding NavigateToChatCommand}"
+                            Click="NewChatButton_Click"
+                            Style="{StaticResource NavButtonStyle}"
+                            Margin="12,0,12,8"/>
 
-                <!-- Conversation list -->
-                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="0,8,0,8">
-                    <ListBox x:Name="ConversationListBox"
-                             ItemsSource="{Binding Conversations}"
-                             SelectedItem="{Binding SelectedConversation}"
-                             Background="Transparent"
-                             BorderThickness="0"
-                             ItemContainerStyle="{StaticResource ConversationItemStyle}">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <StackPanel>
-                                    <TextBlock Text="{Binding Title}"
-                                               FontSize="12"
-                                               Foreground="{DynamicResource TextPrimaryBrush}"
-                                               TextTrimming="CharacterEllipsis"
-                                               MaxWidth="200"
-                                               FontWeight="500"
-                                               FontFamily="{StaticResource BodyFont}"/>
-                                    <TextBlock Text="{Binding UpdatedAt, StringFormat='{}{0:MMM d}'}"
-                                               FontSize="10"
-                                               Foreground="{DynamicResource TextSecondaryBrush}"
-                                               Margin="0,4,0,0"
-                                               FontFamily="{StaticResource BodyFont}"/>
-                                </StackPanel>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                </ScrollViewer>
+                    <Button Content="Chats"
+                            Command="{Binding NavigateToChatsCommand}"
+                            Style="{StaticResource NavButtonStyle}"
+                            Margin="12,0,12,4"/>
+
+                    <Button Content="Search"
+                            Command="{Binding NavigateToSearchCommand}"
+                            Style="{StaticResource NavButtonStyle}"
+                            Margin="12,0,12,4"/>
+
+                </StackPanel>
+
+                <!-- Settings button at bottom -->
+                <Button Grid.Row="2"
+                        Content="Settings"
+                        Command="{Binding NavigateToSettingsCommand}"
+                        Style="{StaticResource NavButtonStyle}"
+                        Margin="12,0,12,16"/>
             </Grid>
         </Border>
 
-        <!-- Right side - Main chat area -->
-        <Grid Grid.Column="1">
+        <!-- Right side - Main chat area (DataContext set to ChatViewModel in code-behind) -->
+        <Grid Grid.Column="1" x:Name="ChatWorkspaceGrid" DataContext="{Binding ChatViewModel}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="60"/>
                 <RowDefinition Height="*"/>
@@ -406,7 +482,7 @@
                             BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="0,0,0,1"
                             Padding="16,12"
-                            Visibility="{Binding MusicPlayer.IsPanelVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                            Visibility="Collapsed">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -627,6 +703,19 @@
                     </TextBox>
 
                     <Grid Grid.Row="1" Grid.Column="2" Margin="12,0,0,0" Width="40">
+                        <Border x:Name="SendPulse"
+                                Width="40"
+                                Height="40"
+                                CornerRadius="20"
+                                BorderBrush="{DynamicResource AccentBrush}"
+                                BorderThickness="1"
+                                Opacity="0"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center">
+                            <Border.RenderTransform>
+                                <ScaleTransform x:Name="SendPulseScale" ScaleX="0.7" ScaleY="0.7"/>
+                            </Border.RenderTransform>
+                        </Border>
                         <!-- Air streaks trailing the paper plane -->
                         <Border x:Name="StreakTop"
                                 Width="9" Height="2"

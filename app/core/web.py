@@ -1,14 +1,48 @@
+import os
+
 from flask import Flask, request
+from flask_cors import CORS
 from markupsafe import escape
 
 # Ensure stdout/stderr are reconfigured to UTF-8 before anything else prints.
 # This prevents `UnicodeEncodeError` when Werkzeug prints startup info or
 # tracebacks on terminals that default to cp1252 / IBM437 (e.g. PowerShell).
 import app.core.console  # noqa: F401
+from app.core.api_v1 import api_v1
 from app.core.brain import think
 
 
+def get_allowed_origins():
+    custom_origins = os.getenv("SATURNIA_ALLOWED_ORIGINS", "").strip()
+    if custom_origins:
+        return [
+            origin.strip()
+            for origin in custom_origins.split(",")
+            if origin.strip()
+        ]
+    return [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+    ]
+
+
 app = Flask(__name__)
+app.register_blueprint(api_v1)
+
+CORS(
+    app,
+    resources={r"/api/*": {"origins": get_allowed_origins()}},
+    methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
+    supports_credentials=True,
+)
+
+
+def flask_debug_enabled():
+    value = os.getenv("FLASK_DEBUG", "").strip().lower()
+    return value in {"1", "true", "yes", "on"}
 
 
 # ============================================================
@@ -169,18 +203,24 @@ def home():
 @app.route("/api/chat", methods=["POST"])
 def api_chat():
 
-    data = request.get_json()
+    data = request.get_json(silent=True)
 
-    if not data:
+    if not data or not isinstance(data, dict):
 
         return {
             "error": "No JSON data received."
         }, 400
 
-    message = data.get(
+    raw_message = data.get(
         "message",
         ""
-    ).strip()
+    )
+    if not isinstance(raw_message, str):
+        return {
+            "error": "Message cannot be empty."
+        }, 400
+
+    message = raw_message.strip()
 
     if not message:
 
@@ -202,5 +242,5 @@ def api_chat():
 if __name__ == "__main__":
 
     app.run(
-        debug=True
+        debug=flask_debug_enabled()
     )

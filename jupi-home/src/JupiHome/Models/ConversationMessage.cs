@@ -12,6 +12,8 @@ namespace JupiHome.Models
         public string Content { get; set; } = string.Empty;
         public DateTime Timestamp { get; set; }
         public bool IsError { get; set; }
+        public FractionVisualization? FractionVisualization { get; set; }
+        public bool IsTicTacToeGame { get; set; }
 
         public ConversationMessage()
         {
