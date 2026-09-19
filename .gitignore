@@ -400,3 +400,7 @@ FodyWeavers.xsd
 
 .env
 saturnia_memory.json
+saturnia_memory.db
+saturnia_memory.db-wal
+saturnia_memory.db-shm
+

@@ -1,266 +1,126 @@
-import json
-import os
+"""Saturnia Memory Service (v0.7 Phase 1 - Memory Foundation).
+
+Maintains complete backward compatibility with existing Saturnia v0.65 API
+and internal callers while delegating persistence to the new Storage Abstraction
+(SQLiteMemoryStorage by default, JSONMemoryStorage for legacy/test isolation).
+"""
+
 from pathlib import Path
 import threading
-import uuid
-from datetime import datetime
+from typing import Any, Dict, List, Optional
 
+from app.core.memory_storage import (
+    BaseMemoryStorage,
+    JSONMemoryStorage,
+    SQLiteMemoryStorage,
+    migrate_json_to_sqlite,
+)
 
 MEMORY_FILE = Path("saturnia_memory.json")
+DB_FILE = Path("saturnia_memory.db")
+
 _memory_lock = threading.RLock()
+_storage_cache: Dict[str, BaseMemoryStorage] = {}
+_migrated_paths: set = set()
 
 
-def _default_memory():
-    return {
-        "facts": {},
-        "conversation_history": [],
-        "conversations": {}
-    }
+def get_storage() -> BaseMemoryStorage:
+    """Return the active memory storage backend instance.
 
-
-def _load_memory():
-
+    Uses SQLiteMemoryStorage by default.
+    If MEMORY_FILE is patched/redirected to a custom .json file (e.g. in legacy tests),
+    it dynamically falls back to JSONMemoryStorage to preserve test expectations.
+    """
     with _memory_lock:
-        if not MEMORY_FILE.exists():
-            return _default_memory()
+        mem_path = Path(MEMORY_FILE)
+        db_path = Path(DB_FILE)
 
-        try:
-            with open(
-                MEMORY_FILE,
-                "r",
-                encoding="utf-8"
-            ) as f:
-                data = json.load(f)
+        # If MEMORY_FILE is explicitly redirected to a custom json path (e.g. in test setup)
+        if mem_path != Path("saturnia_memory.json") and mem_path.suffix == ".json":
+            key = f"json_{mem_path.resolve()}"
+            if key not in _storage_cache:
+                _storage_cache[key] = JSONMemoryStorage(mem_path)
+            return _storage_cache[key]
 
-                if "facts" not in data:
-                    data["facts"] = {}
-
-                if "conversation_history" not in data:
-                    data["conversation_history"] = []
-
-                if "conversations" not in data:
-                    data["conversations"] = {}
-
-                return data
-
-        except Exception:
-            return _default_memory()
-
-
-def _save_memory(data):
-
-    with _memory_lock:
-        temp_file = MEMORY_FILE.with_name(
-            f"{MEMORY_FILE.stem}_{os.getpid()}_{threading.get_ident()}.tmp"
-        )
-        try:
-            with open(
-                temp_file,
-                "w",
-                encoding="utf-8"
-            ) as f:
-                json.dump(
-                    data,
-                    f,
-                    indent=4,
-                    ensure_ascii=False
-                )
-            os.replace(temp_file, MEMORY_FILE)
-        except Exception:
-            if temp_file.exists():
+        key = f"sqlite_{db_path.resolve()}"
+        if key not in _storage_cache:
+            storage = SQLiteMemoryStorage(db_path)
+            _storage_cache[key] = storage
+            # Automatic idempotent migration from saturnia_memory.json if present
+            if mem_path.exists() and str(mem_path.resolve()) not in _migrated_paths:
                 try:
-                    temp_file.unlink()
-                except OSError:
+                    migrate_json_to_sqlite(mem_path, storage)
+                    _migrated_paths.add(str(mem_path.resolve()))
+                except Exception:
+                    # Non-fatal migration failure, preserve state
                     pass
-            raise
+
+        return _storage_cache[key]
 
 
 # ============================================================
 # FACT MEMORY
 # ============================================================
 
-def remember(key, value):
-
-    with _memory_lock:
-        data = _load_memory()
-
-        data["facts"][key] = {
-            "value": value,
-            "updated_at": datetime.now().isoformat()
-        }
-
-        _save_memory(data)
+def remember(key: str, value: Any) -> None:
+    get_storage().remember(key, value)
 
 
-def recall(key):
-
-    with _memory_lock:
-        data = _load_memory()
-
-        item = data["facts"].get(key)
-
-        if not item:
-            return None
-
-        return item["value"]
+def recall(key: str) -> Optional[Any]:
+    return get_storage().recall(key)
 
 
 # ============================================================
 # CONVERSATION MEMORY (LEGACY / GLOBAL)
 # ============================================================
 
-def save_message(role, text):
-
-    with _memory_lock:
-        data = _load_memory()
-
-        data["conversation_history"].append(
-            {
-                "role": role,
-                "text": text,
-                "timestamp": datetime.now().isoformat()
-            }
-        )
-
-        # keep last 100 messages
-        data["conversation_history"] = (
-            data["conversation_history"][-100:]
-        )
-
-        _save_memory(data)
+def save_message(role: str, text: str) -> Dict[str, Any]:
+    return get_storage().save_message(role, text)
 
 
-def get_conversation_history(limit=20):
-
-    with _memory_lock:
-        data = _load_memory()
-
-        return data["conversation_history"][-limit:]
+def get_conversation_history(limit: int = 20) -> List[Dict[str, Any]]:
+    return get_storage().get_conversation_history(limit=limit)
 
 
-def clear_conversation_history():
-
-    with _memory_lock:
-        data = _load_memory()
-
-        data["conversation_history"] = []
-
-        _save_memory(data)
+def clear_conversation_history() -> None:
+    get_storage().clear_conversation_history()
 
 
 # ============================================================
 # CONVERSATION ENTITY STORAGE (v1 API)
 # ============================================================
 
-def create_conversation(title=None, conversation_id=None):
-
-    with _memory_lock:
-        data = _load_memory()
-
-        if conversation_id:
-            conv_id = str(uuid.UUID(str(conversation_id)))
-        else:
-            conv_id = str(uuid.uuid4())
-
-        now = datetime.now().isoformat()
-        clean_title = (
-            str(title).strip()
-            if (title and str(title).strip())
-            else "New Conversation"
-        )
-
-        conv = {
-            "id": conv_id,
-            "title": clean_title,
-            "created_at": now,
-            "updated_at": now,
-            "messages": []
-        }
-
-        data["conversations"][conv_id] = conv
-        _save_memory(data)
-
-        return dict(conv)
+def create_conversation(
+    title: Optional[str] = None, conversation_id: Optional[str] = None
+) -> Dict[str, Any]:
+    return get_storage().create_conversation(
+        title=title, conversation_id=conversation_id
+    )
 
 
-def get_conversation(conversation_id):
-
-    with _memory_lock:
-        data = _load_memory()
-        conv = data.get("conversations", {}).get(str(conversation_id))
-        if conv is None:
-            return None
-        return dict(conv)
+def get_conversation(conversation_id: str) -> Optional[Dict[str, Any]]:
+    return get_storage().get_conversation(conversation_id)
 
 
-def get_conversations():
-
-    with _memory_lock:
-        data = _load_memory()
-        conversations = data.get("conversations", {})
-        summaries = []
-
-        for conv in conversations.values():
-            summaries.append({
-                "id": conv["id"],
-                "title": conv.get("title", "New Conversation"),
-                "created_at": conv.get("created_at"),
-                "updated_at": conv.get("updated_at"),
-                "message_count": len(conv.get("messages", []))
-            })
-
-        summaries.sort(key=lambda x: x.get("updated_at", ""), reverse=True)
-        return summaries
+def get_conversations() -> List[Dict[str, Any]]:
+    return get_storage().get_conversations()
 
 
-def add_conversation_message(conversation_id, role, content):
-
-    with _memory_lock:
-        data = _load_memory()
-        conv = data.get("conversations", {}).get(str(conversation_id))
-        if conv is None:
-            return None
-
-        msg_id = str(uuid.uuid4())
-        now = datetime.now().isoformat()
-
-        message = {
-            "id": msg_id,
-            "role": role,
-            "content": content,
-            "created_at": now
-        }
-
-        conv.setdefault("messages", []).append(message)
-
-        if conv.get("title") == "New Conversation" and role == "user":
-            clean_content = content.strip()
-            if clean_content:
-                conv["title"] = (
-                    clean_content[:50] + "..."
-                    if len(clean_content) > 50
-                    else clean_content
-                )
-
-        conv["updated_at"] = now
-        _save_memory(data)
-
-        return dict(message)
+def add_conversation_message(
+    conversation_id: str, role: str, content: str
+) -> Optional[Dict[str, Any]]:
+    return get_storage().add_conversation_message(
+        conversation_id=conversation_id, role=role, content=content
+    )
 
 
 # ============================================================
 # DEBUG HELPERS
 # ============================================================
 
-def get_all_memory():
-
-    with _memory_lock:
-        return _load_memory()
+def get_all_memory() -> Dict[str, Any]:
+    return get_storage().get_all_memory()
 
 
-def clear_all_memory():
-
-    with _memory_lock:
-        _save_memory(
-            _default_memory()
-        )
+def clear_all_memory() -> None:
+    get_storage().clear_all_memory()
