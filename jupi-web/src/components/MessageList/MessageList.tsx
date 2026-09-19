@@ -1,5 +1,6 @@
 import type { ConversationMessage } from '../../types/api'
 import Message from '../Message/Message'
+import ToolSurface from '../ToolSurface/ToolSurface'
 
 interface MessageListProps {
   messages: ConversationMessage[]
@@ -17,7 +18,10 @@ function MessageList({ messages }: MessageListProps) {
   return (
     <div className="message-list">
       {messages.map((message) => (
-        <Message key={message.id} message={message} />
+        <div className="message-with-tool" key={message.id}>
+          <Message message={message} />
+          {message.role === 'user' && <ToolSurface text={message.content} />}
+        </div>
       ))}
     </div>
   )

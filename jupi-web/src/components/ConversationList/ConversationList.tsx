@@ -16,23 +16,44 @@ function ConversationList({
 }: ConversationListProps) {
   return (
     <aside className="conversation-list">
-      <div className="conversation-list-header">
-        <button className="new-chat-button" onClick={onNewChat}>
-          + New Chat
-        </button>
+      <div className="sidebar-brand" aria-label="Jupi Home">
+        <span className="sidebar-brand-mark">J</span>
       </div>
 
-      <ul className="conversation-list-items">
-        {conversations.map((conversation) => (
-          <li key={conversation.id}>
-            <ConversationItem
-              conversation={conversation}
-              selected={conversation.id === selectedId}
-              onSelect={onSelect}
-            />
-          </li>
-        ))}
-      </ul>
+      <nav className="sidebar-navigation" aria-label="Main navigation">
+        <button className="sidebar-nav-button sidebar-nav-button-primary" onClick={onNewChat}>
+          <span aria-hidden="true">+</span>
+          New Chat
+        </button>
+        <button className="sidebar-nav-button sidebar-nav-button-active" type="button">
+          <span aria-hidden="true">&#9635;</span>
+          Chats
+        </button>
+        <button className="sidebar-nav-button" type="button">
+          <span aria-hidden="true">&#8981;</span>
+          Search
+        </button>
+      </nav>
+
+      <section className="conversation-list-section" aria-label="Conversations">
+        <div className="conversation-list-heading">Recent chats</div>
+        <ul className="conversation-list-items">
+          {conversations.map((conversation) => (
+            <li key={conversation.id}>
+              <ConversationItem
+                conversation={conversation}
+                selected={conversation.id === selectedId}
+                onSelect={onSelect}
+              />
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <button className="sidebar-nav-button sidebar-settings-button" type="button">
+        <span aria-hidden="true">&#9881;</span>
+        Settings
+      </button>
     </aside>
   )
 }

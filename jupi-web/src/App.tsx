@@ -136,10 +136,8 @@ function App() {
     <Layout>
       <header className="app-header">
         <div className="brand">
-          <span className="brand-mark">J</span>
           <div>
-            <h1 className="brand-title">Jupi</h1>
-            <p className="brand-subtitle">Conversation</p>
+            <h1 className="brand-title">Conversation</h1>
           </div>
         </div>
         <div className="header-status">
